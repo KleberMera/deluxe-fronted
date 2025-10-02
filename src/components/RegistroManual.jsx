@@ -7,7 +7,7 @@ import axios from 'axios';
 import MapSelector from '../components/MapSelector';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
-import environments from '../environment/environments';
+import environments from '../environment/environment';
 
 const MySwal = withReactContent(Swal);
 const API_URL = process.env.REACT_APP_API_URL || environments.apiUrl;
@@ -956,11 +956,11 @@ case 4:
       <div className="w-full max-w-md mx-2 relative z-10">
         {/* Logo más pequeño y centrado */}
         <div className="flex justify-center mb-4">
-          <img 
+          {/* <img 
             src="/assets/img/pelicano_letras_blanca.png" 
             alt="Pelican TV" 
             className="h-10 md:h-14 object-contain"
-          />
+          /> */}
         </div>
         
         {/* Formulario */}
@@ -971,7 +971,7 @@ case 4:
               className="text-xl md:text-2xl font-bold text-white"
               style={{ fontFamily: "'Doctor Glitch', sans-serif", textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)' }}
             >
-              REGISTRO MANUAL DE USUARIOS Y TABLAS
+              REGISTROS DE USUARIOS 
             </h1>
           </div>
           
@@ -987,7 +987,7 @@ case 4:
         <div className="flex flex-col items-center mt-3 space-y-2">
           <div className="flex space-x-3">
             {/* Facebook */}
-            <a 
+            {/* <a 
               href="https://facebook.com/pelicanotvcanal" 
               target="_blank" 
               rel="noopener noreferrer"
@@ -998,10 +998,10 @@ case 4:
                 alt="Facebook Pelicano TV" 
                 className="h-7 md:h-9 object-contain"
               />
-            </a>
+            </a> */}
             
             {/* TikTok */}
-            <a 
+            {/* <a 
               href="https://tiktok.com/@pelicanotvcanal" 
               target="_blank" 
               rel="noopener noreferrer"
@@ -1012,10 +1012,10 @@ case 4:
                 alt="TikTok Pelicano TV" 
                 className="h-7 md:h-9 object-contain"
               />
-            </a>
+            </a> */}
             
             {/* Instagram */}
-            <a 
+            {/* <a 
               href="https://instagram.com/pelicanotvcanal" 
               target="_blank" 
               rel="noopener noreferrer"
@@ -1026,10 +1026,10 @@ case 4:
                 alt="Instagram Pelicano TV" 
                 className="h-7 md:h-9 object-contain"
               />
-            </a>
+            </a> */}
             
             {/* X (Twitter) */}
-            <a 
+            {/* <a 
               href="https://x.com/pelicanotvcanal"
               target="_blank" 
               rel="noopener noreferrer"
@@ -1040,14 +1040,14 @@ case 4:
                 alt="X Pelicano TV" 
                 className="h-7 md:h-9 object-contain"
               />
-            </a>
+            </a> */}
           </div>
         
-          <img 
+          {/* <img 
             src="/assets/img/@pelicanotvcanalnegro.png" 
             alt="Pelican TV Canal" 
             className="h-5 md:h-7 object-contain"
-          />
+          /> */}
         </div>
       </div>
 

@@ -7,7 +7,7 @@ import 'leaflet.markercluster';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import environments from '../environment/environments';
+import environments from '../environment/environment';
 
 // Configuración de iconos
 delete L.Icon.Default.prototype._getIconUrl;

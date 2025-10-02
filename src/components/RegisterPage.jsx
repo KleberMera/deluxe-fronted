@@ -5,7 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
 import MapSelector from '../components/MapSelector';
-import environments from '../environment/environments';
+import environments from '../environment/environment';
 
 const API_URL = process.env.REACT_APP_API_URL || environments.apiUrl;
 

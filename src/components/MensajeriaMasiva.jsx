@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
-import environments from '../environment/environments';
+import environments from '../environment/environment';
 
 const MensajeriaMasiva = () => {
   const [activeTab, setActiveTab] = useState('create'); // 'create', 'campaigns', 'stats'

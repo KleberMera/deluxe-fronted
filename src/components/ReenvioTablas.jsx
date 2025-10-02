@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Search, Send, User, CheckCircle, XCircle, AlertCircle, FileText, Phone, CreditCard, RefreshCw, Clock, HelpCircle } from 'lucide-react';
 import WhatsAppStatus from './WhatsAppStatus';
 import InstruccionesReenvio from './InstruccionesReenvio';
-import environments from '../environment/environments';
+import environments from '../environment/environment';
 
 const ReenvioTablas = ({ isResending, setIsResending }) => {
   const [searchData, setSearchData] = useState({

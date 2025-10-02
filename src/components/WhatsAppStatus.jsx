@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Wifi, WifiOff, RefreshCw, CheckCircle, AlertCircle, Clock } from 'lucide-react';
-import environments from '../environment/environments';
+import environments from '../environment/environment';
 
 const WhatsAppStatus = () => {
   const [status, setStatus] = useState(null);
