@@ -186,7 +186,7 @@ const ManualRegisterPage = () => {
           title: 'Usuario no registrado',
           text: 'No se encontró registro para esta cédula. Puede proceder con el registro.',
           icon: 'success',
-          confirmButtonColor: '#fd0066',
+          confirmButtonColor: '#2563eb',
           confirmButtonText: 'Continuar'
         });
       }
@@ -204,7 +204,7 @@ const ManualRegisterPage = () => {
       title: 'Usuario ya registrado',
       html: (
         <div className="text-left">
-          <p className="mb-2 font-semibold text-[#fd0066]">{message}</p>
+          <p className="mb-2 font-semibold text-blue-600">{message}</p>
           <div className="grid grid-cols-2 gap-2 text-sm mb-2">
             <div>
               <p className="text-gray-500 font-semibold">Nombres:</p>
@@ -243,7 +243,7 @@ const ManualRegisterPage = () => {
         </div>
       ),
       icon: limitReached ? 'warning' : 'info',
-      confirmButtonColor: '#fd0066',
+      confirmButtonColor: '#2563eb',
       confirmButtonText: 'Entendido'
     }).then(() => {
       if (limitReached) {
@@ -295,7 +295,7 @@ const ManualRegisterPage = () => {
           title: '¡Registro exitoso!',
           text: 'El usuario y las tablas han sido registrados correctamente.',
           icon: 'success',
-          confirmButtonColor: '#fd0066',
+          confirmButtonColor: '#2563eb',
           confirmButtonText: 'Aceptar'
         });
 
@@ -310,7 +310,7 @@ const ManualRegisterPage = () => {
           title: 'Error',
           text: errorMessage,
           icon: 'error',
-          confirmButtonColor: '#fd0066'
+          confirmButtonColor: '#2563eb'
         });
       } finally {
         setLoading(false);
@@ -442,13 +442,13 @@ useEffect(() => {
           <React.Fragment key={step}>
             <div
               className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center ${
-                currentStep >= step ? 'bg-[#fd0066] text-white' : 'bg-gray-200 text-gray-600'
+                currentStep >= step ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
               } font-semibold text-sm md:text-base`}
             >
               {step}
             </div>
             {step < 4 && (
-              <div className={`w-10 md:w-16 h-1 flex items-center ${currentStep > step ? 'bg-[#fd0066]' : 'bg-gray-200'}`}></div>
+              <div className={`w-10 md:w-16 h-1 flex items-center ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
             )}
           </React.Fragment>
         ))}
@@ -461,7 +461,7 @@ useEffect(() => {
       case 1:
         return (
           <div className="space-y-3 md:space-y-4">
-            <h2 className="text-lg font-semibold text-[#fd0066] mb-3 md:mb-4">Información Personal</h2>            
+            <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Información Personal</h2>            
             <div className="grid grid-cols-1 gap-3">
 
                             <div className="relative">
@@ -471,7 +471,7 @@ useEffect(() => {
                     id="idCard"
                     name="idCard"
                     type="text"
-                    className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent ${
+                    className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
                       formik.touched.idCard && formik.errors.idCard ? 'border-red-500' : 'border-gray-300'
                     } transition-all duration-200`}
                     placeholder="Cédula (10 dígitos)"
@@ -487,8 +487,8 @@ useEffect(() => {
                     type="button"
                     onClick={checkUserExists}
                     disabled={consulting || !formik.values.idCard || formik.errors.idCard}
-                    className={`bg-[#fd0066] text-white font-bold py-2 px-3 rounded-lg shadow transition-all duration-300 ${
-                      consulting || !formik.values.idCard || formik.errors.idCard ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#ff2d87] hover:scale-105'
+                    className={`bg-blue-600 text-white font-bold py-2 px-3 rounded-lg shadow transition-all duration-300 ${
+                      consulting || !formik.values.idCard || formik.errors.idCard ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700 hover:scale-105'
                     } flex items-center justify-center whitespace-nowrap`}
                   >
                     {consulting ? (
@@ -512,7 +512,7 @@ useEffect(() => {
                   id="firstName"
                   name="firstName"
                   type="text"
-                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
                     formik.touched.firstName && formik.errors.firstName ? 'border-red-500' : 'border-gray-300'
                   } transition-all duration-200`}
                   placeholder="Nombre"
@@ -534,7 +534,7 @@ useEffect(() => {
                   id="lastName"
                   name="lastName"
                   type="text"
-                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
                     formik.touched.lastName && formik.errors.lastName ? 'border-red-500' : 'border-gray-300'
                   } transition-all duration-200`}
                   placeholder="Apellido"
@@ -558,7 +558,7 @@ useEffect(() => {
                   id="phone"
                   name="phone"
                   type="text"
-                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
                     formik.touched.phone && formik.errors.phone ? 'border-red-500' : 'border-gray-300'
                   } transition-all duration-200`}
                   placeholder="Teléfono (10 dígitos, empieza con 0)"
@@ -584,7 +584,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={nextStep}
-                className="bg-[#ffde00] hover:bg-[#ffde00] text-black font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#ffde00] focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
               >
                 Siguiente
                 <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -598,7 +598,7 @@ useEffect(() => {
       case 2:
         return (
           <div className="space-y-3 md:space-y-4">
-            <h2 className="text-lg font-semibold text-[#fd0066] mb-3 md:mb-4">Ubicación Geográfica</h2>
+            <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Ubicación Geográfica</h2>
             
             <div className="grid grid-cols-1 gap-3">
               <div>
@@ -606,7 +606,7 @@ useEffect(() => {
                 <select
                   id="provinciaId"
                   name="provinciaId"
-                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
                     formik.touched.provinciaId && formik.errors.provinciaId ? 'border-red-500' : 'border-gray-300'
                   } transition-all duration-200`}
                   onChange={formik.handleChange}
@@ -626,7 +626,7 @@ useEffect(() => {
                 <select
                   id="cantonId"
                   name="cantonId"
-                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
                     formik.touched.cantonId && formik.errors.cantonId ? 'border-red-500' : 'border-gray-300'
                   } transition-all duration-200 ${!formik.values.provinciaId ? 'bg-gray-100' : ''}`}
                   onChange={formik.handleChange}
@@ -647,7 +647,7 @@ useEffect(() => {
                 <select
                   id="barrioId"
                   name="barrioId"
-                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
                     formik.touched.barrioId && formik.errors.barrioId ? 'border-red-500' : 'border-gray-300'
                   } transition-all duration-200 ${!formik.values.cantonId ? 'bg-gray-100' : ''}`}
                   onChange={formik.handleChange}
@@ -671,7 +671,7 @@ useEffect(() => {
                     formik.touched.latitud && formik.errors.latitud ? 'border-red-500' : 'border-blue-500'
                   } ${
                     selectedLocation ? 'text-gray-800 bg-blue-500/10' : 'text-gray-500 bg-white'
-                  } hover:bg-blue-500/20 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm`}
+                  } hover:bg-blue-500/20 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm`}
                   onClick={() => setMapModalOpen(true)}
                 >
                   {selectedLocation && typeof selectedLocation.lat === 'number' && typeof selectedLocation.lng === 'number' ?
@@ -691,7 +691,7 @@ useEffect(() => {
                   id="ubicacionDetallada"
                   name="ubicacionDetallada"
                   rows="2"
-                  className={`w-full px-2 py-1 text-sm border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent ${
+                  className={`w-full px-2 py-1 text-sm border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
                     formik.touched.ubicacionDetallada && formik.errors.ubicacionDetallada ? 'border-red-500' : 'border-gray-300'
                   } transition-all duration-200 resize-none`}
                   placeholder="Describe tu ubicación exacta: referencias, nombre de la calle, número de casa, edificio, etc. (mínimo 10 caracteres)"
@@ -716,7 +716,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={prevStep}
-                className="bg-[#ffde00] hover:bg-[#ffde00] text-black font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#ffde00] focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
@@ -726,7 +726,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={nextStep}
-                className="bg-[#ffde00] hover:bg-[#ffde00] text-black font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#ffde00] focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
               >
                 Siguiente
                 <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -740,9 +740,9 @@ useEffect(() => {
       case 3:
         return (
           <div className="space-y-3 md:space-y-4">
-            <h2 className="text-lg font-semibold text-[#fd0066] mb-3 md:mb-4">Resumen de Registro</h2>
+            <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Resumen de Registro</h2>
             
-            <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200">
               <h3 className="font-semibold text-gray-700 mb-2">Información Personal</h3>
               <div className="grid grid-cols-1 gap-3 mb-3">
                 <div>
@@ -779,7 +779,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={prevStep}
-                className="bg-[#ffde00] hover:bg-[#ffde00] text-black font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#ffde00] focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
@@ -789,7 +789,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={nextStep}
-                className="bg-[#ffde00] hover:bg-[#ffde00] text-black font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#ffde00] focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
               >
                 Siguiente
                 <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -810,7 +810,7 @@ case 4:
         };
         return (
           <div className="space-y-3 md:space-y-4">
-            <h2 className="text-lg font-semibold text-[#fd0066] mb-3 md:mb-4">Registro de Tablas de Bingo</h2>
+            <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Registro de Tablas de Bingo</h2>
             <div className="grid grid-cols-1 gap-3">
               {/* Selector de registrador */}
               <div>
@@ -818,7 +818,7 @@ case 4:
                 <select
                   id="id_registrador"
                   name="id_registrador"
-                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
                     formik.touched.id_registrador && formik.errors.id_registrador ? 'border-red-500' : 'border-gray-300'
                   } transition-all duration-200`}
                   onChange={formik.handleChange}
@@ -840,7 +840,7 @@ case 4:
                   name="tableStart"
                   type="text"
                   maxLength="5"
-                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent ${
+                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
                     formik.touched.tableStart && formik.errors.tableStart ? 'border-red-500' : 'border-gray-300'
                   } transition-all duration-200`}
                   placeholder="Ejemplo: 00001"
@@ -862,13 +862,13 @@ case 4:
                   id="tableEnd"
                   name="tableEnd"
                   type="text"
-                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all duration-200 bg-gray-100"
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200 bg-gray-100"
                   value={formik.values.tableEnd}
                   readOnly
                   disabled
                 />
               </div>
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+              <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200">
                 <h3 className="font-semibold text-gray-700 mb-2 text-sm">Rango de Tablas a Registrar (4 tablas)</h3>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
@@ -907,7 +907,7 @@ case 4:
               <button
                 type="button"
                 onClick={prevStep}
-                className="bg-[#ffde00] hover:bg-[#ffde00] text-black font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#ffde00] focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
@@ -916,12 +916,12 @@ case 4:
               </button>
               <button
                 type="submit"
-                className="bg-[#ffde00] hover:bg-[#ffde00] text-black font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#ffde00] focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center text-sm"
                 disabled={loading}
               >
                 {loading ? (
                   <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -947,10 +947,9 @@ case 4:
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-2 md:p-4 relative overflow-hidden bg-cover bg-center"
-      style={{ backgroundImage: "url('/assets/img/fondo_app.jpg')" }}
+      className="min-h-screen flex items-center justify-center p-2 md:p-4 relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-zinc-900"
     >
-      <div className="absolute inset-0 bg-black bg-opacity-10"></div>
+      <div className="absolute inset-0 bg-black bg-opacity-20"></div>
       
       <ToastContainer position="top-center" autoClose={5000} />
       
@@ -967,7 +966,7 @@ case 4:
         {/* Formulario */}
         <div className="bg-white bg-opacity-90 rounded-xl shadow-2xl overflow-hidden border-2 md:border-4 border-white">
           {/* Header con título y fuente personalizada */}
-          <div className="bg-[#fd0066] p-2 md:p-3 text-center">
+          <div className="bg-blue-600 p-2 md:p-3 text-center">
             <h1 
               className="text-xl md:text-2xl font-bold text-white"
               style={{ fontFamily: "'Doctor Glitch', sans-serif", textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)' }}
@@ -1055,9 +1054,9 @@ case 4:
       {/* Modal de mapa */}
       {mapModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-2">
-          <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl w-full max-w-4xl mx-2 h-[80vh] flex flex-col overflow-hidden shadow-2xl border-2 md:border-4 border-[#fd0066] relative">
+          <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl w-full max-w-4xl mx-2 h-[80vh] flex flex-col overflow-hidden shadow-2xl border-2 md:border-4 border-blue-600 relative">
             {/* Encabezado con efecto de gradiente */}
-            <div className="flex justify-between items-center p-3 bg-gradient-to-r from-[#fd0066] to-[#ff2d87]">
+            <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-600 to-blue-700">
               <h3 className="text-base md:text-lg font-bold text-white" style={styles.glitchFont}>
                 📍 SELECCIONE SU UBICACIÓN
               </h3>
@@ -1066,7 +1065,7 @@ case 4:
                   setMapModalOpen(false);
                   setTempSelectedLocation(null);
                 }}
-                className="text-white hover:text-[#ffde00] text-xl leading-none transition-colors duration-300 transform hover:rotate-90"
+                className="text-white hover:text-zinc-300 text-xl leading-none transition-colors duration-300 transform hover:rotate-90"
               >
                 &times;
               </button>
@@ -1074,7 +1073,7 @@ case 4:
             
             {/* Contenedor del mapa con efecto de borde */}
             <div className="flex-1 p-1 md:p-2 relative">
-              <div className="absolute inset-1 md:inset-2 rounded-lg overflow-hidden border border-[#ffde00] shadow-inner">
+              <div className="absolute inset-1 md:inset-2 rounded-lg overflow-hidden border border-zinc-400 shadow-inner">
                 {mapReady ? (
                   <MapSelector 
                     onLocationSelect={(lat, lng) => {
@@ -1086,7 +1085,7 @@ case 4:
                 ) : (
                   <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
                     <div className="text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#fd0066] mx-auto mb-2"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto mb-2"></div>
                       <span className="text-gray-700 text-xs md:text-sm font-medium">
                         Cargando mapa interactivo...
                       </span>
@@ -1099,9 +1098,9 @@ case 4:
             {/* Pie de página con botones */}
             <div className="p-2 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 flex justify-between items-center">
               {tempSelectedLocation && (
-                <div className="text-xs md:text-sm font-medium text-[#fd0066]">
+                <div className="text-xs md:text-sm font-medium text-blue-600">
                   <span className="hidden md:inline">📍 Ubicación seleccionada:</span> 
-                  <span className="font-mono bg-[#ffde00]/20 px-1 py-0.5 rounded">
+                  <span className="font-mono bg-zinc-200 px-1 py-0.5 rounded">
                     {tempSelectedLocation.lat.toFixed(6)}, {tempSelectedLocation.lng.toFixed(6)}
                   </span>
                 </div>
@@ -1129,8 +1128,8 @@ case 4:
                     setTempSelectedLocation(null);
                   }}
                   disabled={!tempSelectedLocation}
-                  className={`px-3 py-1 bg-[#fd0066] hover:bg-[#ff2d87] text-white font-bold rounded-lg shadow transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#fd0066] focus:ring-opacity-50 flex items-center text-xs md:text-sm ${
-                    !tempSelectedLocation ? 'opacity-50 cursor-not-allowed hover:bg-[#fd0066]' : ''
+                  className={`px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center text-xs md:text-sm ${
+                    !tempSelectedLocation ? 'opacity-50 cursor-not-allowed hover:bg-blue-600' : ''
                   }`}
                 >
                   <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
