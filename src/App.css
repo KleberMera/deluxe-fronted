@@ -1,0 +1,5 @@
+@font-face {
+    font-family: 'Doctor Glitch';
+    src: url('/assets/fonts/doctor_glitch.otf') format('opentype');
+    font-display: swap;
+}
