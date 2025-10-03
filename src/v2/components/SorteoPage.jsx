@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Fullscreen, FullscreenExit } from '@mui/icons-material';
 import axios from 'axios';
-import environments from '../environments/environment';
+import environments from "../environments/environment";
+
 
 export default function SorteoPage() {
   const [participants, setParticipants] = useState([]);

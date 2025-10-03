@@ -3,6 +3,7 @@ import { Users, BarChart3, Activity, Database, UserCheck, Calendar, Trophy, X, C
 import environments from '../environments/environment';
 
 
+
 const DashboardVarios = () => {
   const [data, setData] = useState({
     registradores: [],
