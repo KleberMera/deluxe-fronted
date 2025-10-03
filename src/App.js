@@ -8,6 +8,9 @@ import Dashboard from './components/AdminDashboard';
 import ManualRegisterUserPage from './components/RegistroManualUsuarios';
 import DashboardAdmin from './components/TablasDashboard';
 import ManualRegistroVarios from './v2/components/RegistroManualVarios';
+import DashboardVarios from './v2/components/AdminDashboardVarios';
+import SorteoPage from './v2/components/SorteoPage';
+
 
 function Home() {
   return (
@@ -46,6 +49,9 @@ function App() {
         <Route path="/registro-manual" element={<ManualRegisterPage />} />
         <Route path="/administracion-tablas" element={<DashboardAdmin />} />
         <Route path='/registro-usuarios-varios' element={<ManualRegistroVarios />} />
+                <Route path='/admin-panel-varios' element={<DashboardVarios />} />
+        <Route path="/sorteos-varios" element={<SorteoPage />} />
+
 
         {/* Rutas reservadas (comentadas, no se usan ahora) */}
         {/*
