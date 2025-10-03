@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Wifi, WifiOff, RefreshCw, CheckCircle, AlertCircle, Clock } from 'lucide-react';
-import environments from '../environment/environment';
 
 const WhatsAppStatus = () => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const BASE_URL = environments.apiUrl
+  const BASE_URL = 'https://restdeluxe.bingoamigo.net';
 
   const fetchStatus = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${BASE_URL}/whatsapp-otp/status`);
+      const response = await fetch(`${BASE_URL}/api/whatsapp-otp/status`);
       
       if (response.ok) {
         const result = await response.json();

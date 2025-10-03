@@ -7,6 +7,7 @@ import ManualRegisterPage from './components/RegistroManual';
 import Dashboard from './components/AdminDashboard';
 import ManualRegisterUserPage from './components/RegistroManualUsuarios';
 import DashboardAdmin from './components/TablasDashboard';
+import ManualRegistroVarios from './v2/components/RegistroManualVarios';
 
 function Home() {
   return (
@@ -44,6 +45,7 @@ function App() {
         <Route path="/admin-panel" element={<Dashboard />} />
         <Route path="/registro-manual" element={<ManualRegisterPage />} />
         <Route path="/administracion-tablas" element={<DashboardAdmin />} />
+        <Route path='/registro-usuarios-varios' element={<ManualRegistroVarios />} />
 
         {/* Rutas reservadas (comentadas, no se usan ahora) */}
         {/*

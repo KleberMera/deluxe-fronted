@@ -5,9 +5,8 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
 import MapSelector from '../components/MapSelector';
-import environments from '../environment/environments';
 
-const API_URL = process.env.REACT_APP_API_URL ||  environments.apiUrl;
+const API_URL = process.env.REACT_APP_API_URL || 'https://restdeluxe.bingoamigo.net/api';
 
 const RegisterPage = () => {
   const [loading, setLoading] = useState(false);

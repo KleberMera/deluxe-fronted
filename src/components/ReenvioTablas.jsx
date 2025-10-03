@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Search, Send, User, CheckCircle, XCircle, AlertCircle, FileText, Phone, CreditCard, RefreshCw, Clock, HelpCircle } from 'lucide-react';
 import WhatsAppStatus from './WhatsAppStatus';
 import InstruccionesReenvio from './InstruccionesReenvio';
-import environments from '../environment/environment';
 
 const ReenvioTablas = ({ isResending, setIsResending }) => {
   const [searchData, setSearchData] = useState({
@@ -17,7 +16,7 @@ const ReenvioTablas = ({ isResending, setIsResending }) => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [showInstructions, setShowInstructions] = useState(false);
 
-  const BASE_URL = environments.apiUrl;
+  const BASE_URL = 'https://restdeluxe.bingoamigo.net';
 
   // Agregar actividad reciente
   const addRecentActivity = (activity) => {
@@ -50,7 +49,7 @@ const ReenvioTablas = ({ isResending, setIsResending }) => {
     setSearchResult(null);
 
     try {
-      const response = await fetch(`${BASE_URL}/whatsapp-otp/search-user`, {
+      const response = await fetch(`${BASE_URL}/api/whatsapp-otp/search-user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +137,7 @@ const ReenvioTablas = ({ isResending, setIsResending }) => {
     }
 
     try {
-      const response = await fetch(`${BASE_URL}/whatsapp-otp/resend-table`, {
+      const response = await fetch(`${BASE_URL}/api/whatsapp-otp/resend-table`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
-import environments from '../environment/environment';
 
 const MensajeriaMasiva = () => {
   const [activeTab, setActiveTab] = useState('create'); // 'create', 'campaigns', 'stats'
@@ -139,8 +138,7 @@ const MensajeriaMasiva = () => {
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   // Configuración de URL - cambiar para desarrollo/producción
-
- const BASE_URL =  environments.apiUrl;
+  const BASE_URL =  'https://restdeluxe.bingoamigo.net';
 
 
   const AUTH_TOKEN = 'admin-token-123';
@@ -158,7 +156,7 @@ const MensajeriaMasiva = () => {
 
   const loadProvinces = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/bulk-messaging/filters/provinces`);
+      const response = await fetch(`${BASE_URL}/api/bulk-messaging/filters/provinces`);
       const result = await response.json();
       if (result.success) {
         setProvinces(result.data);
@@ -176,7 +174,7 @@ const MensajeriaMasiva = () => {
     }
 
     try {
-      const response = await fetch(`${BASE_URL}/bulk-messaging/filters/provinces/${provinceId}/cantones`);
+      const response = await fetch(`${BASE_URL}/api/bulk-messaging/filters/provinces/${provinceId}/cantones`);
       const result = await response.json();
       if (result.success) {
         setCantons(result.data);
@@ -194,7 +192,7 @@ const MensajeriaMasiva = () => {
     }
 
     try {
-      const response = await fetch(`${BASE_URL}/bulk-messaging/filters/cantones/${cantonId}/barrios`);
+      const response = await fetch(`${BASE_URL}/api/bulk-messaging/filters/cantones/${cantonId}/barrios`);
       const result = await response.json();
       if (result.success) {
         setNeighborhoods(result.data);
@@ -206,7 +204,7 @@ const MensajeriaMasiva = () => {
 
   const loadCampaigns = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/bulk-messaging/campaigns`, { headers });
+      const response = await fetch(`${BASE_URL}/api/bulk-messaging/campaigns`, { headers });
       const result = await response.json();
       if (result.success) {
         setCampaigns(result.data.campaigns || []);
@@ -223,7 +221,7 @@ const MensajeriaMasiva = () => {
     // Si se selecciona una provincia, también intentamos cargar todos sus barrios
     if (provinceId) {
       try {
-        const response = await fetch(`${BASE_URL}/bulk-messaging/filters/provinces/${provinceId}/all-barrios`);
+        const response = await fetch(`${BASE_URL}/api/bulk-messaging/filters/provinces/${provinceId}/all-barrios`);
         if (response.ok) {
           const result = await response.json();
           if (result.success) {
@@ -259,7 +257,7 @@ const MensajeriaMasiva = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${BASE_URL}/bulk-messaging/users/preview`, {
+      const response = await fetch(`${BASE_URL}/api/bulk-messaging/users/preview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -330,7 +328,7 @@ const MensajeriaMasiva = () => {
   const getCampaignDetails = async (campaignId) => {
     setLoadingDetails(true);
     try {
-      const response = await fetch(`${BASE_URL}/bulk-messaging/campaigns/${campaignId}/details`, {
+      const response = await fetch(`${BASE_URL}/api/bulk-messaging/campaigns/${campaignId}/details`, {
         method: 'GET',
         headers
       });
@@ -693,7 +691,7 @@ const MensajeriaMasiva = () => {
 
       console.log('🚀 DEBUG - Enviando FormData con imagen:', selectedImage ? 'SÍ' : 'NO');
 
-      const response = await fetch(`${BASE_URL}/bulk-messaging/campaigns`, {
+      const response = await fetch(`${BASE_URL}/api/bulk-messaging/campaigns`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${AUTH_TOKEN}`
@@ -745,7 +743,7 @@ const MensajeriaMasiva = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const response = await fetch(`${BASE_URL}/bulk-messaging/campaigns/${campaignId}/start`, {
+      const response = await fetch(`${BASE_URL}/api/bulk-messaging/campaigns/${campaignId}/start`, {
         method: 'POST',
         headers
       });
@@ -781,7 +779,7 @@ const MensajeriaMasiva = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const response = await fetch(`${BASE_URL}/bulk-messaging/campaigns/${campaignId}/cancel`, {
+      const response = await fetch(`${BASE_URL}/api/bulk-messaging/campaigns/${campaignId}/cancel`, {
         method: 'POST',
         headers
       });
@@ -817,7 +815,7 @@ const MensajeriaMasiva = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const response = await fetch(`${BASE_URL}/bulk-messaging/campaigns/${campaignId}/pause`, {
+      const response = await fetch(`${BASE_URL}/api/bulk-messaging/campaigns/${campaignId}/pause`, {
         method: 'POST',
         headers
       });
@@ -853,7 +851,7 @@ const MensajeriaMasiva = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const response = await fetch(`${BASE_URL}/bulk-messaging/campaigns/${campaignId}/resume`, {
+      const response = await fetch(`${BASE_URL}/api/bulk-messaging/campaigns/${campaignId}/resume`, {
         method: 'POST',
         headers
       });
@@ -927,9 +925,9 @@ const MensajeriaMasiva = () => {
     try {
       setLoading(true);
       console.log(`🗑️ Eliminando campaña ${campaignId}: ${campaignName}`);
-      console.log(`🌐 URL del endpoint: ${BASE_URL}/bulk-messaging/campaigns/${campaignId}`);
+      console.log(`🌐 URL del endpoint: ${BASE_URL}/api/bulk-messaging/campaigns/${campaignId}`);
 
-      const response = await fetch(`${BASE_URL}/bulk-messaging/campaigns/${campaignId}`, {
+      const response = await fetch(`${BASE_URL}/api/bulk-messaging/campaigns/${campaignId}`, {
         method: 'DELETE',
         headers
       });
@@ -994,7 +992,7 @@ const MensajeriaMasiva = () => {
 
       for (const campaign of completedCampaigns) {
         try {
-          const response = await fetch(`${BASE_URL}/bulk-messaging/campaigns/${campaign.id}`, {
+          const response = await fetch(`${BASE_URL}/api/bulk-messaging/campaigns/${campaign.id}`, {
             method: 'DELETE',
             headers
           });

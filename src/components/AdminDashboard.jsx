@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Users, BarChart3, Activity, Database, UserCheck, Calendar, Trophy, Award, Filter, X, ChevronDown, Send, RefreshCw, MessageCircle } from 'lucide-react';
 import ReenvioTablas from './ReenvioTablas';
 import MensajeriaMasiva from './MensajeriaMasiva';
-import environments from '../environment/environment';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'reenvio', 'masivos'
@@ -17,12 +16,12 @@ const Dashboard = () => {
   const [selectedBrigada, setSelectedBrigada] = useState('');
   const [filteredData, setFilteredData] = useState(null);
   const [isResending, setIsResending] = useState(false); // Estado para controlar actualizaciones durante reenvío
-  const BASE_URL = environments.apiUrl
+
   // Función para obtener los datos de la API
   const fetchMetrics = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${BASE_URL}/registradores/dashboard-metrics`);
+      const response = await fetch('https://restdeluxe.bingoamigo.net/api/registradores/dashboard-metrics');
       
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);

@@ -7,7 +7,6 @@ import 'leaflet.markercluster';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import environments from '../environment/environment';
 
 // Configuración de iconos
 delete L.Icon.Default.prototype._getIconUrl;
@@ -21,8 +20,7 @@ const defaultIcon = L.icon({
   shadowSize: [41, 41]
 });
   
-const apiUrl = environments.apiUrl;
-const API_URL = process.env.REACT_APP_API_URL || apiUrl;
+const API_URL = process.env.REACT_APP_API_URL || 'https://restdeluxe.bingoamigo.net/api';
 
 // Componente optimizado para el mapa de calor
 const HeatmapLayer = React.memo(({ data, isVisible }) => {
