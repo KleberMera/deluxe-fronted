@@ -24,11 +24,7 @@ const ManualRegistroVarios = () => {
   const [tempSelectedLocation, setTempSelectedLocation] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [registradores, setRegistradores] = useState([]);
-  const [tableRange, setTableRange] = useState({
-    start: '',
-    end: '',
-    quantity: 0
-  });
+  const [brigadaInfo, setBrigadaInfo] = useState(null);
 
   // Definir la fuente personalizada
   const styles = {
@@ -71,23 +67,7 @@ const ManualRegistroVarios = () => {
       .required('La ubicación detallada es obligatoria'),
     latitud: Yup.number().required('Seleccione su ubicación en el mapa'),
     longitud: Yup.number().required('Seleccione su ubicación en el mapa'),
-    tableStart: Yup.string()
-      .required('Número inicial de tabla es obligatorio')
-      .test('length', 'Debe tener máximo 5 dígitos', value => {
-        if (!value) return false;
-        return /^\d{1,5}$/.test(value);
-      })
-      .test('valid-sheet-start', 'Debe ser el INICIO de hoja (ej: 1, 5, 9, ...)', function(value) {
-        if (!value) return false;
-        const num = parseInt(value, 10);
-        return ((num - 1) % 4 === 0);
-      })
-      .test('max-value', 'El número máximo permitido es 99999', function(value) {
-        if (!value) return false;
-        return parseInt(value, 10) <= 99999;
-      }),
-    tableEnd: Yup.string().required('Número final de tabla es obligatorio'),
-        id_registrador: Yup.string().required('Seleccione un registrador')
+    id_registrador: Yup.string().required('Seleccione un registrador')
   });
 
   useEffect(() => {
@@ -95,17 +75,20 @@ const ManualRegistroVarios = () => {
   }, []);
 
   useEffect(() => {
-  const fetchRegistradores = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/registradores/list`);
-      setRegistradores(response.data.registradores);
-    } catch (error) {
-      console.error('Error al cargar registradores:', error);
-      toast.error('Error al cargar la lista de registradores');
-    }
-  };
-  fetchRegistradores();
-}, []);
+    const fetchRegistradores = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/registradores/activos-con-tipo`);
+        if (response.data.success) {
+          setRegistradores(response.data.data);
+          setBrigadaInfo(response.data.brigadaInfo);
+        }
+      } catch (error) {
+        console.error('Error al cargar registradores:', error);
+        toast.error('Error al cargar la lista de registradores');
+      }
+    };
+    fetchRegistradores();
+  }, []);
 
   const checkUserExists = async () => {
     if (!formik.values.idCard || formik.errors.idCard) {
@@ -115,71 +98,36 @@ const ManualRegistroVarios = () => {
 
     setConsulting(true);
     try {
-      const response = await axios.post(`${API_URL}/users/consultar-usuario`, {
-        idCard: formik.values.idCard
-      });
+      const response = await axios.get(`${API_URL}/usuarios-otros/check/${formik.values.idCard}`);
 
       if (response.data.exists) {
-        const { brigadaInfo, tables, message, limitReached, user } = response.data;
-        // Si puede registrar más tablas, autollenar datos
-        if (!limitReached && user) {
-          // ...autollenado...
-          setTimeout(() => {
-            formik.validateForm();
-          }, 100);
-          formik.setFieldValue('firstName', user.firstName || '');
-          formik.setFieldTouched('firstName', true, false);
-          formik.setFieldValue('lastName', user.lastName || '');
-          formik.setFieldTouched('lastName', true, false);
-          formik.setFieldValue('phone', user.phone || '');
-          formik.setFieldTouched('phone', true, false);
-          // Tomar IDs desde user.location
-          const provinciaId = user.location?.provincia?.id || '';
-          const cantonId = user.location?.canton?.id || '';
-          const barrioId = user.location?.barrio?.id || '';
-          formik.setFieldValue('provinciaId', provinciaId);
-          formik.setFieldTouched('provinciaId', true, false);
-          if (provinciaId) {
-            axios.get(`${API_URL}/locationNew/provincias/${provinciaId}/cantones`).then(res => {
-              setCantones(res.data.data);
-              // Esperar a que el select tenga las opciones antes de setear el valor
-              setTimeout(() => {
-                if (res.data.data.some(c => String(c.id) === String(cantonId))) {
-                  formik.setFieldValue('cantonId', cantonId);
-                  formik.setFieldTouched('cantonId', true, false);
-                }
-                if (cantonId) {
-                  axios.get(`${API_URL}/locationNew/cantones/${cantonId}/barrios`).then(res2 => {
-                    setBarrios(res2.data.data);
-                    setTimeout(() => {
-                      if (res2.data.data.some(b => String(b.id) === String(barrioId))) {
-                        formik.setFieldValue('barrioId', barrioId);
-                        formik.setFieldTouched('barrioId', true, false);
-                      }
-                    }, 100);
-                  });
-                }
-              }, 100);
-            });
-          }
-          formik.setFieldValue('ubicacionDetallada', user.location?.ubicacionDetallada || '');
-          formik.setFieldTouched('ubicacionDetallada', true, false);
-          // Convertir lat/lng a número si existen
-          const lat = user.location?.latitud !== undefined ? Number(user.location.latitud) : null;
-          const lng = user.location?.longitud !== undefined ? Number(user.location.longitud) : null;
-          formik.setFieldValue('latitud', lat);
-          formik.setFieldValue('longitud', lng);
-          if (typeof lat === 'number' && !isNaN(lat) && typeof lng === 'number' && !isNaN(lng)) {
-            setSelectedLocation({ lat, lng });
-          }
-          // No rellenar tableStart/tableEnd para que el usuario ingrese el nuevo rango
-        }
-        showUserTablesAlert({
-          user,
-          brigadaInfo,
-          tables,
-          message,
-          limitReached
+        const { data, message } = response.data;
+        
+        MySwal.fire({
+          title: 'Usuario ya registrado',
+          html: (
+            <div className="text-left">
+              <p className="mb-2 font-semibold text-orange-600">{message}</p>
+              <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                <div>
+                  <p className="text-gray-500 font-semibold">Nombres:</p>
+                  <p>{data.first_name} {data.last_name}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 font-semibold">Cédula:</p>
+                  <p>{data.id_card}</p>
+                </div>
+              </div>
+            </div>
+          ),
+          icon: 'warning',
+          confirmButtonColor: '#f59e0b',
+          confirmButtonText: 'Entendido'
+        }).then(() => {
+          // Limpiar formulario
+          formik.resetForm();
+          setSelectedLocation(null);
+          setCurrentStep(1);
         });
       } else {
         MySwal.fire({
@@ -198,62 +146,6 @@ const ManualRegistroVarios = () => {
     }
   };
 
-  // Nuevo modal para mostrar tablas y brigada
-  const showUserTablesAlert = ({ user, brigadaInfo, tables, message, limitReached }) => {
-    MySwal.fire({
-      title: 'Usuario ya registrado',
-      html: (
-        <div className="text-left">
-          <p className="mb-2 font-semibold text-blue-600">{message}</p>
-          <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-            <div>
-              <p className="text-gray-500 font-semibold">Nombres:</p>
-              <p>{user.firstName} {user.lastName}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 font-semibold">Teléfono:</p>
-              <p>{user.phone}</p>
-            </div>
-          </div>
-          <div className="mb-2">
-            <p className="text-gray-500 font-semibold">Brigada activa:</p>
-            <p>ID Evento: {brigadaInfo?.id_evento ?? '--'}</p>
-            <p>Máx. tablas por persona: <span className="font-bold">{brigadaInfo?.maxTables ?? '--'}</span></p>
-            <p>Tablas actuales: <span className="font-bold">{brigadaInfo?.currentTables ?? 0}</span></p>
-            <p>Espacios restantes: <span className="font-bold">{brigadaInfo?.remainingSlots ?? 0}</span></p>
-          </div>
-          <div className="mb-2">
-            <p className="text-gray-500 font-semibold">Tablas en brigada activa:</p>
-            {tables?.activeBrigada?.length > 0 ? (
-              <ul className="list-disc ml-5">
-                {tables.activeBrigada.map((tabla, idx) => (
-                  <li key={idx}>
-                    Código: <span className="font-mono">{tabla.tableCode}</span> - Estado: {tabla.entregado ? 'Entregada' : 'Pendiente'}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-600">No tiene tablas en esta brigada.</p>
-            )}
-          </div>
-          <div>
-            <p className="text-gray-500 font-semibold">Tablas en otras brigadas:</p>
-            <p>{tables?.otherBrigadas ?? 0}</p>
-          </div>
-        </div>
-      ),
-      icon: limitReached ? 'warning' : 'info',
-      confirmButtonColor: '#2563eb',
-      confirmButtonText: 'Entendido'
-    }).then(() => {
-      if (limitReached) {
-        formik.resetForm();
-        setSelectedLocation(null);
-        setCurrentStep(1);
-      }
-    });
-  };
-
   const formik = useFormik({
     initialValues: {
       firstName: '',
@@ -266,8 +158,6 @@ const ManualRegistroVarios = () => {
       ubicacionDetallada: '',
       latitud: null,
       longitud: null,
-      tableStart: '',
-      tableEnd: '',
       id_registrador: ''
     },
     validationSchema,
@@ -275,25 +165,36 @@ const ManualRegistroVarios = () => {
       setLoading(true);
       try {
         // Verificar si el usuario ya existe (doble verificación)
-        const checkResponse = await axios.post(`${API_URL}/users/consultar-usuario`, {
-          idCard: values.idCard
-        });
+        const checkResponse = await axios.get(`${API_URL}/usuarios-otros/check/${values.idCard}`);
 
-        if (checkResponse.data.exists && checkResponse.data.hasTable && checkResponse.data.isDelivered) {
-          toast.error('Este usuario ya tiene tabla registrada y entregada');
+        if (checkResponse.data.exists) {
+          toast.error('Este usuario ya está registrado en el sistema');
           setLoading(false);
           return;
         }
 
+        // Preparar datos para el registro
+        const registrationData = {
+          first_name: values.firstName,
+          last_name: values.lastName,
+          id_card: values.idCard,
+          phone: values.phone,
+          provincia_id: parseInt(values.provinciaId),
+          canton_id: parseInt(values.cantonId),
+          barrio_id: parseInt(values.barrioId),
+          latitud: values.latitud,
+          longitud: values.longitud,
+          ubicacion_detallada: values.ubicacionDetallada,
+          id_registrador: parseInt(values.id_registrador),
+          id_evento: brigadaInfo?.id_evento || null
+        };
+
         // Registrar al usuario
-        await axios.post(`${API_URL}/users/register-manual`, {
-          ...values,
-          phone_verified: 1
-        });
+        await axios.post(`${API_URL}/usuarios-otros/register`, registrationData);
 
         MySwal.fire({
           title: '¡Registro exitoso!',
-          text: 'El usuario y las tablas han sido registrados correctamente.',
+          text: 'El usuario ha sido registrado correctamente.',
           icon: 'success',
           confirmButtonColor: '#2563eb',
           confirmButtonText: 'Aceptar'
@@ -302,10 +203,9 @@ const ManualRegistroVarios = () => {
         formik.resetForm();
         setSelectedLocation(null);
         setCurrentStep(1);
-        setTableRange({ start: '', end: '', quantity: 0 });
       } catch (error) {
         console.error('Error en el registro:', error);
-        const errorMessage = error.response?.data?.error || 'Error al registrar. Por favor, intente de nuevo.';
+        const errorMessage = error.response?.data?.message || 'Error al registrar. Por favor, intente de nuevo.';
         MySwal.fire({
           title: 'Error',
           text: errorMessage,
@@ -317,22 +217,6 @@ const ManualRegistroVarios = () => {
       }
     }
   });
-
-useEffect(() => {
-  if (formik.values.tableStart) {
-    const start = parseInt(formik.values.tableStart);
-    if (!isNaN(start)) {
-      const end = start + 3;
-      formik.setFieldValue('tableEnd', end.toString());
-      setTableRange({
-        start: formik.values.tableStart,
-        end: end.toString(),
-        quantity: 4
-      });
-    }
-  }
-}, [formik.values.tableStart]);
-
 
   useEffect(() => {
     const fetchProvincias = async () => {
@@ -363,7 +247,7 @@ useEffect(() => {
       }
     };
     fetchCantones();
-  }, [formik.values.provinciaId]);
+  }, [formik.values.provinciaId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const fetchBarrios = async () => {
@@ -379,7 +263,7 @@ useEffect(() => {
       }
     };
     fetchBarrios();
-  }, [formik.values.cantonId]);
+  }, [formik.values.cantonId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLocationSelect = (lat, lng) => {
     setSelectedLocation({ lat, lng });
@@ -399,28 +283,18 @@ useEffect(() => {
         isValid = false;
       }
     } else if (currentStep === 2) {
-      if (!formik.values.provinciaId || !formik.values.cantonId || !formik.values.barrioId || !formik.values.ubicacionDetallada) {
+      if (!formik.values.provinciaId || !formik.values.cantonId || !formik.values.barrioId || !formik.values.ubicacionDetallada || !selectedLocation) {
         isValid = false;
       }
       if (formik.errors.ubicacionDetallada) {
         isValid = false;
       }
     } else if (currentStep === 3) {
-      if (!selectedLocation) {
+      if (!selectedLocation || !formik.values.id_registrador) {
         isValid = false;
       }
-    } else if (currentStep === 4) {
-      if (!formik.values.tableStart || !formik.values.tableEnd) {
+      if (formik.errors.id_registrador) {
         isValid = false;
-      }
-      if (formik.errors.tableStart || formik.errors.tableEnd) {
-        isValid = false;
-      }
-      const start = parseInt(formik.values.tableStart);
-      const end = parseInt(formik.values.tableEnd);
-      if (start >= end) {
-        isValid = false;
-        toast.error('El número final debe ser mayor al inicial');
       }
     }
     
@@ -438,7 +312,7 @@ useEffect(() => {
   const renderStepIndicator = () => {
     return (
       <div className="flex justify-center mb-4 md:mb-6">
-        {[1, 2, 3, 4].map((step) => (
+        {[1, 2, 3].map((step) => (
           <React.Fragment key={step}>
             <div
               className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center ${
@@ -447,7 +321,7 @@ useEffect(() => {
             >
               {step}
             </div>
-            {step < 4 && (
+            {step < 3 && (
               <div className={`w-10 md:w-16 h-1 flex items-center ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
             )}
           </React.Fragment>
@@ -740,13 +614,58 @@ useEffect(() => {
       case 3:
         return (
           <div className="space-y-3 md:space-y-4">
-            <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Resumen de Registro</h2>
+            <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Finalizar Registro</h2>
             
+            {/* Selector de registrador */}
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label htmlFor="id_registrador" className="block text-gray-700 font-medium mb-1">
+                  Registrador <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="id_registrador"
+                  name="id_registrador"
+                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
+                    formik.touched.id_registrador && formik.errors.id_registrador ? 'border-red-500' : 'border-gray-300'
+                  } transition-all duration-200`}
+                  onChange={formik.handleChange}
+                  value={formik.values.id_registrador}
+                >
+                  <option value="">Seleccione un registrador</option>
+                  {registradores.map(registrador => (
+                    <option key={registrador.id} value={registrador.id}>
+                      {registrador.nombre_registrador}
+                    </option>
+                  ))}
+                </select>
+                {formik.touched.id_registrador && formik.errors.id_registrador && (
+                  <div className="text-red-500 text-xs mt-1">{formik.errors.id_registrador}</div>
+                )}
+              </div>
+
+              {/* Tipo de registrador (solo lectura) */}
+              {formik.values.id_registrador && (
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1">Tipo de Registrador</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-gray-100 text-gray-700"
+                    value={
+                      registradores.find(r => String(r.id) === String(formik.values.id_registrador))?.nombre_tipo || ''
+                    }
+                    readOnly
+                    disabled
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Resumen del registro */}
             <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200">
-              <h3 className="font-semibold text-gray-700 mb-2">Información Personal</h3>
+              <h3 className="font-semibold text-gray-700 mb-2">Resumen de Registro</h3>
               <div className="grid grid-cols-1 gap-3 mb-3">
                 <div>
-                  <p className="text-xs text-gray-500">Nombres</p>
+                  <p className="text-xs text-gray-500">Nombres Completos</p>
                   <p className="font-medium text-sm">{formik.values.firstName} {formik.values.lastName}</p>
                 </div>
                 <div>
@@ -757,9 +676,6 @@ useEffect(() => {
                   <p className="text-xs text-gray-500">Teléfono</p>
                   <p className="font-medium text-sm">{formik.values.phone}</p>
                 </div>
-              </div>
-              <h3 className="font-semibold text-gray-700 mb-2">Ubicación</h3>
-              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <p className="text-xs text-gray-500">Ubicación Detallada</p>
                   <p className="font-medium text-sm">{formik.values.ubicacionDetallada}</p>
@@ -775,134 +691,6 @@ useEffect(() => {
               </div>
             </div>
             
-            <div className="flex justify-between pt-4">
-              <button
-                type="button"
-                onClick={prevStep}
-                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-                Anterior
-              </button>
-              <button
-                type="button"
-                onClick={nextStep}
-                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
-              >
-                Siguiente
-                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-        );
-
-case 4:
-        // Mostrar los 4 códigos calculados
-        const getTableCodes = (startValue) => {
-          if (!startValue) return [];
-          const start = parseInt(startValue, 10);
-          if (isNaN(start)) return [];
-          return [start, start + 1, start + 2, start + 3];
-        };
-        return (
-          <div className="space-y-3 md:space-y-4">
-            <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Registro de Tablas de Bingo</h2>
-            <div className="grid grid-cols-1 gap-3">
-              {/* Selector de registrador */}
-              <div>
-                <label htmlFor="id_registrador" className="block text-gray-700 font-medium mb-1">Registrador</label>
-                <select
-                  id="id_registrador"
-                  name="id_registrador"
-                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
-                    formik.touched.id_registrador && formik.errors.id_registrador ? 'border-red-500' : 'border-gray-300'
-                  } transition-all duration-200`}
-                  onChange={formik.handleChange}
-                  value={formik.values.id_registrador}
-                >
-                  <option value="">Seleccione un registrador</option>
-                  {registradores.map(registrador => (
-                    <option key={registrador.id} value={registrador.id}>{registrador.nombre_registrador}</option>
-                  ))}
-                </select>
-                {formik.touched.id_registrador && formik.errors.id_registrador && (
-                  <div className="text-red-500 text-xs mt-1">{formik.errors.id_registrador}</div>
-                )}
-              </div>
-              <div>
-                <label htmlFor="tableStart" className="block text-gray-700 font-medium mb-1">Número Inicial de Tabla</label>
-                <input
-                  id="tableStart"
-                  name="tableStart"
-                  type="text"
-                  maxLength="5"
-                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
-                    formik.touched.tableStart && formik.errors.tableStart ? 'border-red-500' : 'border-gray-300'
-                  } transition-all duration-200`}
-                  placeholder="Ejemplo: 00001"
-                  onChange={(e) => {
-                    let value = e.target.value.replace(/\D/g, '').slice(0, 5);
-                    formik.setFieldValue('tableStart', value);
-                  }}
-                  onBlur={formik.handleBlur}
-                  value={formik.values.tableStart}
-                  inputMode="numeric"
-                />
-                {formik.touched.tableStart && formik.errors.tableStart && (
-                  <div className="text-red-500 text-xs mt-1">{formik.errors.tableStart}</div>
-                )}
-              </div>
-              <div>
-                <label htmlFor="tableEnd" className="block text-gray-700 font-medium mb-1">Número Final de Tabla</label>
-                <input
-                  id="tableEnd"
-                  name="tableEnd"
-                  type="text"
-                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200 bg-gray-100"
-                  value={formik.values.tableEnd}
-                  readOnly
-                  disabled
-                />
-              </div>
-              <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200">
-                <h3 className="font-semibold text-gray-700 mb-2 text-sm">Rango de Tablas a Registrar (4 tablas)</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Desde</p>
-                    <p className="font-medium text-sm">{tableRange.start || '--'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Hasta</p>
-                    <p className="font-medium text-sm">{tableRange.end || '--'}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-xs text-gray-500">Total de Tablas</p>
-                    <p className="font-medium text-sm">4</p>
-                  </div>
-                </div>
-                {/* Mostrar los 4 códigos */}
-                {formik.values.tableStart && !formik.errors.tableStart && (
-                  <div className="mt-2">
-                    <label className="block text-xs text-gray-500 mb-1">Códigos asignados:</label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {getTableCodes(formik.values.tableStart).map((code, idx) => (
-                        <input
-                          key={idx}
-                          type="text"
-                          className="px-2 py-2 border-2 border-blue-200 rounded-lg bg-blue-50 text-blue-800 font-semibold text-center text-sm"
-                          value={code.toString().padStart(5, '0')}
-                          disabled
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
             <div className="flex justify-between pt-4">
               <button
                 type="button"
@@ -932,7 +720,7 @@ case 4:
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1"></path>
                     </svg>
-                    Registrar
+                    Registrar Usuario
                   </span>
                 )}
               </button>
@@ -971,7 +759,7 @@ case 4:
               className="text-xl md:text-2xl font-bold text-white"
               style={{ fontFamily: "'Doctor Glitch', sans-serif", textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)' }}
             >
-              REGISTROS DE USUARIOS 
+              REGISTRO DE USUARIOS
             </h1>
           </div>
           
