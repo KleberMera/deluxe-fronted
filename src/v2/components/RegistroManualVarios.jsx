@@ -26,6 +26,41 @@ const ManualRegistroVarios = () => {
   const [registradores, setRegistradores] = useState([]);
   const [brigadaInfo, setBrigadaInfo] = useState(null);
 
+  // Helper para normalizar la respuesta de la API /usuarios-otros/check
+  const parseApiCheckResponse = (resp) => {
+    const top = resp?.data || {};
+    // Caso 1: respuesta plana con keys { data: { ...usuario }, message, status }
+    // Caso 2: respuesta con data que contiene { success, message, data: null, exists, brigadaInfo }
+    // Queremos derivar: exists (boolean), data (obj|null), message (string), brigadaInfo (obj|null)
+    let exists = typeof top.exists !== 'undefined' ? top.exists : undefined;
+    let data = top.data;
+    let message = top.message || '';
+    let brigadaInfoResp = top.brigadaInfo || null;
+
+    if (typeof exists === 'undefined' && data && typeof data === 'object') {
+      const inner = data;
+      if (typeof inner.exists !== 'undefined') {
+        exists = inner.exists;
+        data = inner.data || null;
+        message = inner.message || message;
+        brigadaInfoResp = inner.brigadaInfo || brigadaInfoResp;
+      } else if (inner && (inner.id || inner.first_name || inner.id_card)) {
+        // data ya es el objeto usuario
+        exists = true;
+        // data stays as is
+      } else if (inner && inner.success && typeof inner.exists !== 'undefined') {
+        exists = inner.exists;
+        data = inner.data || null;
+        message = inner.message || message;
+        brigadaInfoResp = inner.brigadaInfo || brigadaInfoResp;
+      }
+    }
+
+    if (typeof exists === 'undefined') exists = false;
+
+    return { exists, data, message, brigadaInfo: brigadaInfoResp };
+  };
+
   // Definir la fuente personalizada
   const styles = {
     glitchFont: {
@@ -77,7 +112,7 @@ const ManualRegistroVarios = () => {
   useEffect(() => {
     const fetchRegistradores = async () => {
       try {
-        const response = await axios.get(`${API_URL}/registradores/activos-con-tipo`);
+        const response = await axios.get(`${API_URL}/registrador/activos-con-tipo`);
         if (response.data.success) {
           setRegistradores(response.data.data);
           setBrigadaInfo(response.data.brigadaInfo);
@@ -100,9 +135,9 @@ const ManualRegistroVarios = () => {
     try {
       const response = await axios.get(`${API_URL}/usuarios-otros/check/${formik.values.idCard}`);
 
-      if (response.data.exists) {
-        const { data, message } = response.data;
-        
+      const { exists, data, message } = parseApiCheckResponse(response);
+
+      if (exists) {
         MySwal.fire({
           title: 'Usuario ya registrado',
           html: (
@@ -111,11 +146,11 @@ const ManualRegistroVarios = () => {
               <div className="grid grid-cols-2 gap-2 text-sm mb-2">
                 <div>
                   <p className="text-gray-500 font-semibold">Nombres:</p>
-                  <p>{data.first_name} {data.last_name}</p>
+                  <p>{data?.first_name} {data?.last_name}</p>
                 </div>
                 <div>
                   <p className="text-gray-500 font-semibold">Cédula:</p>
-                  <p>{data.id_card}</p>
+                  <p>{data?.id_card}</p>
                 </div>
               </div>
             </div>
@@ -132,7 +167,7 @@ const ManualRegistroVarios = () => {
       } else {
         MySwal.fire({
           title: 'Usuario no registrado',
-          text: 'No se encontró registro para esta cédula. Puede proceder con el registro.',
+          text: message || 'No se encontró registro para esta cédula. Puede proceder con el registro.',
           icon: 'success',
           confirmButtonColor: '#2563eb',
           confirmButtonText: 'Continuar'
@@ -166,8 +201,9 @@ const ManualRegistroVarios = () => {
       try {
         // Verificar si el usuario ya existe (doble verificación)
         const checkResponse = await axios.get(`${API_URL}/usuarios-otros/check/${values.idCard}`);
+        const { exists: existsOnCheck } = parseApiCheckResponse(checkResponse);
 
-        if (checkResponse.data.exists) {
+        if (existsOnCheck) {
           toast.error('Este usuario ya está registrado en el sistema');
           setLoading(false);
           return;
@@ -221,7 +257,7 @@ const ManualRegistroVarios = () => {
   useEffect(() => {
     const fetchProvincias = async () => {
       try {
-        const response = await axios.get(`${API_URL}/locationNew/provincias`);
+        const response = await axios.get(`${API_URL}/location/provincias`);
         setProvincias(response.data.data);
       } catch (error) {
         toast.error('Error al cargar provincias');
@@ -235,7 +271,7 @@ const ManualRegistroVarios = () => {
     const fetchCantones = async () => {
       if (formik.values.provinciaId) {
         try {
-          const response = await axios.get(`${API_URL}/locationNew/provincias/${formik.values.provinciaId}/cantones`);
+          const response = await axios.get(`${API_URL}/location/provincias/${formik.values.provinciaId}/cantones`);
           setCantones(response.data.data);
           formik.setFieldValue('cantonId', '');
           formik.setFieldValue('barrioId', '');
@@ -253,7 +289,7 @@ const ManualRegistroVarios = () => {
     const fetchBarrios = async () => {
       if (formik.values.cantonId) {
         try {
-          const response = await axios.get(`${API_URL}/locationNew/cantones/${formik.values.cantonId}/barrios`);
+          const response = await axios.get(`${API_URL}/location/cantones/${formik.values.cantonId}/barrios`);
           setBarrios(response.data.data);
           formik.setFieldValue('barrioId', '');
         } catch (error) {

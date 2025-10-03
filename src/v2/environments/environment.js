@@ -1,5 +1,5 @@
 const environments = {
-    apiUrl: 'http://localhost:5000/api/v2',
+    apiUrl: 'http://localhost:5000/api',
     apiUrlProduction: 'https://restdeluxe.bingoamigo.net/api'
 };
 
