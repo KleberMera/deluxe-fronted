@@ -307,13 +307,14 @@ const DashboardVarios = () => {
             <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg p-2 mr-3">
               <UserCheck className="text-white" size={24} />
             </div>
-            {brigadaSeleccionada ? 'REGISTRADORES DE LA BRIGADA' : 'TODOS LOS REGISTRADORES'}
+            {brigadaSeleccionada ? 'REGISTRADORES' : 'TODOS LOS REGISTRADORES'}
             {brigadaSeleccionada && ` (${brigadaSeleccionada.nombre_brigada})`}
           </h3>
           <div className="flex items-center space-x-4">
             <div className="text-right">
               <p className="text-sm text-gray-500">Total: {allRegistradores.length}</p>
-              <p className="text-xs text-gray-400">Elementos generados desde totales por brigada</p>
+                            <p className="text-xs text-gray-400"></p>
+              {/* <p className="text-xs text-gray-400">Elementos generados desde totales por brigada</p> */}
             </div>
             {selectedBrigada && (
               <div className="flex items-center space-x-2">
