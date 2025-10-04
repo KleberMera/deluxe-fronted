@@ -413,7 +413,7 @@ const DashboardVarios = () => {
                   onClick={() => setSelectedBrigada(brigada.id_brigada.toString())}
                 >
                   <td className="py-3 px-4 text-gray-800 font-medium">
-                    {brigada.nombre_brigada}
+                    {brigada.descripcion || brigada.nombre_brigada}
                     {brigadasOrdenadas[0]?.id_brigada === brigada.id_brigada && (
                       <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Líder</span>
                     )}
@@ -621,7 +621,7 @@ const ExecutiveSummary = () => {
                     .sort((a, b) => a.id_brigada - b.id_brigada)
                     .map(brigada => (
                       <option key={brigada.id_brigada} value={brigada.id_brigada}>
-                        Brigada {brigada.id_brigada}: {brigada.nombre_brigada}
+                        {brigada.descripcion || `Brigada ${brigada.id_brigada}: ${brigada.nombre_brigada}`}
                       </option>
                     ))}
                 </select>
