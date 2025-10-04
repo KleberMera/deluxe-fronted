@@ -310,18 +310,18 @@ const DashboardVarios = () => {
             {brigadaSeleccionada ? 'REGISTRADORES' : 'TODOS LOS REGISTRADORES'}
             {brigadaSeleccionada && ` (${brigadaSeleccionada.nombre_brigada})`}
           </h3>
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
+          <div className="flex items-center space-x-4 flex-wrap">
+            <div className="text-right w-full sm:w-auto">
               <p className="text-sm text-gray-500">Total: {allRegistradores.length}</p>
-                            <p className="text-xs text-gray-400"></p>
+              <p className="text-xs text-gray-400"></p>
               {/* <p className="text-xs text-gray-400">Elementos generados desde totales por brigada</p> */}
             </div>
             {selectedBrigada && (
-              <div className="flex items-center space-x-2">
+              <div className="hidden sm:flex items-center space-x-2 w-auto">
                 <select
                   value={registradorTipo}
                   onChange={(e) => setRegistradorTipo(e.target.value)}
-                  className="appearance-none bg-white text-gray-800 border border-gray-300 rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="appearance-none bg-white text-gray-800 border border-gray-300 rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 w-auto"
                 >
                   <option value="all">Todos los tipos</option>
                   {tiposDisponibles.map((t) => (
@@ -336,6 +336,27 @@ const DashboardVarios = () => {
           </div>
         </div>
         
+        {/* Selector visible sólo en móviles: aparece antes de la lista de registradores */}
+        {selectedBrigada && (
+          <div className="sm:hidden mb-3 px-0">
+            <div className="flex items-center space-x-2 w-full">
+              <select
+                value={registradorTipo}
+                onChange={(e) => setRegistradorTipo(e.target.value)}
+                className="appearance-none bg-white text-gray-800 border border-gray-300 rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 w-full"
+              >
+                <option value="all">Todos los tipos</option>
+                {tiposDisponibles.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+              {registradorTipo !== 'all' && (
+                <button onClick={() => setRegistradorTipo('all')} className="text-sm text-blue-600 hover:underline">Limpiar tipo</button>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
           {allRegistradores.map((registrador, index) => (
             <div key={registrador.registrador_id} 
