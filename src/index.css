@@ -6,3 +6,14 @@
     src: url('/public/assets/fonts/doctor_glitch.otf') format('opentype');
     font-display: swap;
 }
+
+
+
+/* Wheel pointer arrow */
+.clip-arrow {
+  clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+  transform: translateY(0);
+  position: relative;
+  z-index: 10;
+  margin-top: 10px; /* Add some space between the arrow and the wheel */
+}

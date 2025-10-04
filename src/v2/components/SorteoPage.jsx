@@ -1,21 +1,41 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Fullscreen, FullscreenExit } from '@mui/icons-material';
 import axios from 'axios';
+import { Fullscreen, FullscreenExit } from '@mui/icons-material';
 import environments from "../environments/environment";
 
-
 export default function SorteoPage() {
-  const [participants, setParticipants] = useState([]);
+  const [allParticipants, setAllParticipants] = useState([]); // Lista completa de participantes
+  const [availableParticipants, setAvailableParticipants] = useState([]); // Participantes que aún no han ganado
+  const [participants, setParticipants] = useState([]); // Lista de participantes actual
+  const [history, setHistory] = useState([]); // Historial de ganadores
   const [winner, setWinner] = useState(null);
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
+  const [currentHighlight, setCurrentHighlight] = useState('');
   const spinDuration = 5000; // 5 seconds
   const spinRef = useRef(null);
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false);
-  const [history, setHistory] = useState([]);
+  const [winners, setWinners] = useState([]); // Lista de ganadores
   const [showHistory, setShowHistory] = useState(true); // Mostrar el historial por defecto
-  const [filtroFechaInicio, setFiltroFechaInicio] = useState(new Date().toISOString().split('T')[0]); // Fecha de inicio por defecto
-  const [filtroFechaFin, setFiltroFechaFin] = useState(new Date().toISOString().split('T')[0]); // Fecha de fin por defecto
+  // Función para formatear la fecha a YYYY-MM-DD en la zona horaria local
+  const formatLocalDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Función para obtener la fecha actual en formato YYYY-MM-DD
+  const getTodayDate = () => {
+    return formatLocalDate(new Date());
+  };
+
+  const [fechaInicio, setFechaInicio] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 6);
+    return formatLocalDate(date);
+  });
+  const [fechaFin, setFechaFin] = useState(getTodayDate());
   const [registradores, setRegistradores] = useState([]);
   const [selectedTipoRegistrador, setSelectedTipoRegistrador] = useState('');
   const [loading, setLoading] = useState(false);
@@ -56,127 +76,226 @@ export default function SorteoPage() {
     "#FF5733", "#33FF57", "#5733FF", "#33FFEC", "#EC33FF",
     "#FFEC33", "#FF33A8", "#33A8FF", "#A8FF33", "#A833FF"
   ];
+  
+  // Estilos para la transición suave de la ruleta
+  const wheelStyle = {
+    transform: `rotate(${rotation}deg)`,
+    transition: spinning ? 'none' : 'transform 0.1s ease-out',
+    backgroundColor: 'white'
+  };
 
-  // 🔹 Cargar participantes desde API con filtro de fecha
-  /*const fetchParticipants = async () => {
-    setLoading(true);
+  // Cargar tipos de registradores
+  const fetchRegistradores = async () => {
     try {
-      console.log('Obteniendo participantes con fecha filtro:', fechaFiltro);
-      const res = await getMascotasConPersona();
-      //console.log('Datos recibidos:', res.data);
+      const API_URL = process.env.REACT_APP_API_URL || environments.apiUrl;
+      const response = await axios.get(`${API_URL}/registrador/activos-con-tipo`);
       
-      const fechaFiltroDate = new Date(fechaFiltro);
-      //console.log('Filtrando por fecha mayor o igual a:', fechaFiltroDate);
-      
-      // Filtrar los datos por fecha de registro
-      const data = res.data.filter(mascota => {
-        if (!mascota.fecha_registro) return false;
-        const fechaRegistro = new Date(mascota.fecha_registro);
-        const cumpleFiltro = fechaRegistro >= fechaFiltroDate;
-        if (cumpleFiltro) {
-          //console.log('Incluyendo mascota:', mascota.nombre, 'con fecha:', mascota.fecha_registro);
-        }
-        return cumpleFiltro;
-      });
-
-      //console.log('Datos después de filtrar:', data);
-
-      // Filtrar personas únicas
-      const personasMap = {};
-      const duplicados = [];
-      
-      data.forEach((item) => {
-        if (item.persona && item.persona.cedula) {
-          if (!personasMap[item.persona.cedula]) {
-            personasMap[item.persona.cedula] = {
-              cedula: item.persona.cedula,
-              nombre: `${item.persona.nombres || ''} ${item.persona.apellidos || ''}`.trim(),
-              celular: item.persona.celular || '',
-              // Guardar la fecha de registro para depuración
-              fecha_registro: item.fecha_registro,
-              // Contador de ocurrencias
-              contador: 1,
-              // IDs de las mascotas asociadas
-              mascotas: [{
-                id: item.id_mascota,
-                nombre: item.nombre,
-                fecha_registro: item.fecha_registro
-              }]
-            };
-          } else {
-            // Si ya existe, incrementar el contador y agregar la mascota
-            personasMap[item.persona.cedula].contador++;
-            personasMap[item.persona.cedula].mascotas.push({
-              id: item.id_mascota,
-              nombre: item.nombre,
-              fecha_registro: item.fecha_registro
-            });
-            
-            // Agregar a la lista de duplicados
-            duplicados.push({
-              cedula: item.persona.cedula,
-              nombre: `${item.persona.nombres || ''} ${item.persona.apellidos || ''}`.trim(),
-              fecha_registro: item.fecha_registro,
-              mascota_id: item.id_mascota,
-              mascota_nombre: item.nombre
+      if (response.data.success) {
+        const tiposUnicos = [];
+        const tiposVistos = new Set();
+        
+        response.data.data.forEach(registrador => {
+          if (!tiposVistos.has(registrador.id_tipo_registrador)) {
+            tiposVistos.add(registrador.id_tipo_registrador);
+            tiposUnicos.push({
+              id: registrador.id_tipo_registrador,
+              nombre: registrador.nombre_tipo,
+              descripcion: registrador.tipo_descripcion
             });
           }
-        }
-      });
-
-      // Mostrar duplicados en la consola
-      if (duplicados.length > 0) {
-        //console.group('📌 Participantes duplicados encontrados:');
-        //console.table(duplicados);
-        //console.groupEnd();
+        });
         
-        // Mostrar resumen de duplicados
-        const resumenDuplicados = Object.values(personasMap)
-          .filter(p => p.contador > 1)
+        setRegistradores(tiposUnicos);
+        if (tiposUnicos.length > 0 && !selectedTipoRegistrador) {
+          setSelectedTipoRegistrador(tiposUnicos[0].id.toString());
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar registradores:', error);
+    }
+  };
+
+  // Cargar participantes con filtros
+  const fetchParticipants = async () => {
+    setLoading(true);
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || environments.apiUrl;
+      const response = await axios.get(`${API_URL}/usuarios-otros`);
+      
+      if (response.data.success) {
+        // Formatear fechas para comparación
+        const fechaInicioDate = new Date(fechaInicio);
+        fechaInicioDate.setUTCHours(0, 0, 0, 0);
+        
+        const fechaFinDate = new Date(fechaFin);
+        fechaFinDate.setUTCHours(23, 59, 59, 999);
+        
+        // Filtrar y mapear en un solo paso
+        const participantesFormateados = response.data.data
+          .filter(participante => {
+            if (!participante.fecha_registro) return false;
+            
+            // Filtrar por fecha
+            const fechaRegistro = new Date(participante.fecha_registro);
+            const fechaRegistroAjustada = new Date(fechaRegistro.getTime() - (fechaRegistro.getTimezoneOffset() * 60000));
+            const cumpleFecha = fechaRegistroAjustada >= fechaInicioDate && 
+                              fechaRegistroAjustada <= fechaFinDate;
+            
+            // Filtrar por tipo de registrador
+            const tipoRegistradorId = participante.id_tipo_registrador_snapshot?.toString();
+            const cumpleTipo = !selectedTipoRegistrador || tipoRegistradorId === selectedTipoRegistrador;
+            
+            return cumpleFecha && cumpleTipo;
+          })
           .map(p => ({
-            cedula: p.cedula,
-            nombre: p.nombre,
-            'Total Mascotas': p.contador,
-            'Fechas': p.mascotas.map(m => new Date(m.fecha_registro).toISOString().split('T')[0]).join(', ')
+            id: p.id,
+            nombre: `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Sin nombre',
+            cedula: p.id_card,
+            celular: p.phone,
+            fecha_registro: p.fecha_registro,
+            tipo_registrador: p.nombre_tipo_registrador,
+            contador: 1,
+            // Añadir información del filtro actual
+            filtroActual: `${fechaInicio}-${fechaFin}-${selectedTipoRegistrador}`
           }));
-          
-        //console.log('📊 Resumen de duplicados por persona:');
-        //console.table(resumenDuplicados);
+        
+        // Actualizar el estado con los nuevos participantes
+        setAllParticipants(participantesFormateados);
+        
+        // Filtrar para excluir a TODOS los ganadores previos, independientemente del filtro
+        const cedulasGanadoras = new Set(winners.map(w => w.cedula));
+        const participantesSinGanadores = participantesFormateados.filter(
+          p => !cedulasGanadoras.has(p.cedula)
+        );
+        
+        // Actualizar la lista de participantes disponibles
+        setAvailableParticipants(participantesSinGanadores);
+        setParticipants(participantesSinGanadores);
       }
 
-      const participantesFiltrados = Object.values(personasMap);
-      //console.log('Participantes únicos encontrados:', participantesFiltrados);
-      setParticipants(participantesFiltrados);
+      // Data is already processed in participantesFiltrados and participantesFormateados
     } catch (error) {
       console.error("Error cargando participantes:", error);
     } finally {
       setLoading(false);
     }
-  };*/
+  };
 
+  // Cargar datos iniciales al cambiar filtros
+  useEffect(() => {
+    const loadData = async () => {
+      // Guardar el estado de carga actual
+      const wasLoading = loading;
+      if (!wasLoading) setLoading(true);
+      
+      try {
+        await fetchRegistradores();
+        await fetchParticipants();
+      } finally {
+        if (!wasLoading) setLoading(false);
+      }
+    };
+    
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fechaInicio, fechaFin, selectedTipoRegistrador]);
+
+  // Actualizar participantes disponibles cuando cambia la lista de ganadores o participantes
+  useEffect(() => {
+    if (allParticipants.length === 0) return;
+    
+    // Filtrar participantes que no estén en la lista de ganadores
+    const participantesSinGanadores = allParticipants.filter(
+      p => !winners.some(w => w.cedula === p.cedula)
+    );
+    
+    // Actualizar la lista de participantes disponibles
+    setAvailableParticipants(participantesSinGanadores);
+    setParticipants(participantesSinGanadores);
+    
+    // Si no hay más participantes disponibles, mostrar mensaje
+    if (participantesSinGanadores.length === 0 && allParticipants.length > 0) {
+      console.log('No hay más participantes disponibles');
+    }
+  }, [winners, allParticipants]);
 
   const startDraw = () => {
-    if (participants.length === 0 || spinning) return;
+    if (spinning) {
+      alert('La ruleta ya está girando');
+      return;
+    }
+    
+    if (availableParticipants.length === 0) {
+      alert('No hay participantes disponibles para el sorteo. Por favor, verifica los filtros.');
+      return;
+    }
     
     setSpinning(true);
     setWinner(null);
     setShowWinnerAnimation(false);
+    setCurrentHighlight('');
     
-    // Calculate the target rotation (5 full spins + random position)
-    const extraSpins = 5;
-    const targetRotation = 3600 + Math.floor(Math.random() * 360); // 10 full spins + random degree
+    // Seleccionar un ganador aleatorio de los participantes disponibles
+    const winnerIndex = Math.floor(Math.random() * availableParticipants.length);
+    const selectedWinner = availableParticipants[winnerIndex];
     
-    // Set the rotation with smooth transition
-    setRotation(prevRotation => {
-      // Calculate total rotation needed (current + target)
-      const totalRotation = prevRotation + targetRotation;
+    // Calcular la rotación necesaria para que la flecha apunte al ganador
+    const sliceDegree = 360 / allParticipants.length;
+    const winnerPosition = allParticipants.findIndex(p => p.cedula === selectedWinner.cedula);
+    const targetDegree = 360 - (sliceDegree * winnerPosition) - (sliceDegree / 2);
+    
+    // Rotación total = vueltas completas + posición del ganador
+    const targetRotation = (360 * 10) + targetDegree;
+    
+    // Animation variables
+    const startTime = Date.now();
+    const startRotation = rotation;
+    const totalRotation = startRotation + targetRotation;
+    
+    // Animation function
+    const animate = () => {
+      const now = Date.now();
+      const progress = Math.min((now - startTime) / spinDuration, 1);
+      const easeOutProgress = 1 - Math.pow(1 - progress, 3); // Ease-out effect
+      const currentRotation = startRotation + (totalRotation - startRotation) * easeOutProgress;
       
-      // Start the animation
-      setTimeout(() => {
-        const sliceDegree = 360 / participants.length;
+      setRotation(currentRotation);
+      updateHighlight(currentRotation);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Animation complete
+        const sliceDegree = 360 / allParticipants.length;
         const normalizedRotation = totalRotation % 360;
-        const winnerIndex = Math.floor(normalizedRotation / sliceDegree) % participants.length;
-        const selectedWinner = participants[participants.length - 1 - winnerIndex];
+        const winnerIndex = Math.floor(normalizedRotation / sliceDegree) % allParticipants.length;
+        const selectedWinner = allParticipants[allParticipants.length - 1 - winnerIndex];
+        
+        // Add the winner to the winners list with filter info
+        const winnerWithFilter = {
+          ...selectedWinner,
+          filtroId: `${selectedWinner.cedula}-${fechaInicio}-${fechaFin}-${selectedTipoRegistrador}`,
+          fechaSorteo: new Date().toISOString(),
+          // Almacenar el filtro actual para referencia
+          filtroActual: selectedWinner.filtroActual
+        };
+        
+        // Actualizar la lista de ganadores
+        setWinners(prevWinners => [...prevWinners, winnerWithFilter]);
+        
+        // Actualizar las listas de participantes para que el ganador no aparezca más
+        setAvailableParticipants(prev => 
+          prev.filter(p => p.cedula !== selectedWinner.cedula)
+        );
+        
+        setParticipants(prev => 
+          prev.filter(p => p.cedula !== selectedWinner.cedula)
+        );
+        
+        // También actualizar allParticipants para mantener la consistencia
+        setAllParticipants(prev => 
+          prev.filter(p => p.cedula !== selectedWinner.cedula)
+        );
         
         // Create a new history entry with unique ID
         const newHistoryEntry = {
@@ -186,23 +305,55 @@ export default function SorteoPage() {
         };
         
         // Update state with the new history entry
-        setHistory(prev => [...prev, newHistoryEntry].filter((entry, index, self) => index === self.findIndex(t => t.id === entry.id)));
-        setWinner(selectedWinner);
+        setHistory(prev => [...prev, newHistoryEntry].filter((entry, index, self) => 
+          index === self.findIndex(t => t.id === entry.id)
+        ));
         
+        setWinner(selectedWinner);
         setShowWinnerAnimation(true);
         setSpinning(false);
-      }, spinDuration + 100); // Add small buffer for the animation to complete
-      
-      return totalRotation;
-    });
+      }
+    };
+    
+    // Start the animation
+    requestAnimationFrame(animate);
   };
 
+  // Actualizar el resaltado según la rotación actual
+  const updateHighlight = (angle) => {
+    if (allParticipants.length === 0) return;
+    
+    const sliceDegree = 360 / allParticipants.length;
+    const normalizedAngle = ((angle % 360) + 360) % 360; // Asegurar ángulo entre 0 y 360
+    const index = Math.floor(normalizedAngle / sliceDegree);
+    const currentIndex = (allParticipants.length - 1 - index) % allParticipants.length;
+    setCurrentHighlight(allParticipants[currentIndex]?.nombre || '');
+  };
+  
+  // Get the browser's history object properly
+  const browserHistory = window.history;
+
   // Para no mostrar nombres largos en la ruleta
+  // Verificar si un participante ya ha ganado
+  const hasWon = (participant) => {
+    return winners.some(winner => winner.cedula === participant.cedula);
+  };
+
   const shortenName = (name) => {
+    if (!name) return '';
     if (name.length > 15) {
       return name.substring(0, 13) + "...";
     }
     return name;
+  };
+
+  // Reiniciar el sorteo
+  const resetWinners = () => {
+    if (window.confirm('¿Estás seguro de que deseas reiniciar la lista de ganadores? Esto permitirá que todos los participantes puedan volver a ganar.')) {
+      setWinners([]);
+      // Recargar los participantes para asegurar que todos estén disponibles
+      fetchParticipants();
+    }
   };
 
   // Formatear fecha
@@ -218,169 +369,37 @@ export default function SorteoPage() {
     return new Date(dateString).toLocaleString('es-ES', options);
   };
 
-  // Cargar registradores al montar el componente
-  useEffect(() => {
-    const fetchRegistradores = async () => {
-      try {
-        const API_URL = process.env.REACT_APP_API_URL || environments.apiUrl;
-        const response = await axios.get(`${API_URL}/registrador/activos-con-tipo`);
-        if (response.data.success) {
-          // Filtrar tipos de registradores únicos
-          const tiposUnicos = [];
-          const tiposVistos = new Set();
-          
-          response.data.data.forEach(registrador => {
-            if (!tiposVistos.has(registrador.id_tipo_registrador)) {
-              tiposVistos.add(registrador.id_tipo_registrador);
-              tiposUnicos.push({
-                id: registrador.id_tipo_registrador,
-                nombre: registrador.nombre_tipo,
-                descripcion: registrador.tipo_descripcion
-              });
-            }
-          });
-          
-          setRegistradores(tiposUnicos);
-          
-          // Seleccionar el primer tipo por defecto si hay tipos disponibles
-          if (tiposUnicos.length > 0 && !selectedTipoRegistrador) {
-            setSelectedTipoRegistrador(tiposUnicos[0].id.toString());
-          }
-        }
-      } catch (error) {
-        console.error('Error al cargar registradores:', error);
-      }
-    };
-    
-    fetchRegistradores();
-  }, []);
-
-  // Funciones para manejar el cambio de fechas
+  // Manejadores de cambios
   const handleFechaInicioChange = (e) => {
-    setFiltroFechaInicio(e.target.value);
+    setFechaInicio(e.target.value);
   };
 
   const handleFechaFinChange = (e) => {
-    setFiltroFechaFin(e.target.value);
+    setFechaFin(e.target.value);
   };
 
-  // Función para manejar el cambio de tipo de registrador
   const handleTipoRegistradorChange = (e) => {
     setSelectedTipoRegistrador(e.target.value);
   };
 
-  // Función para cargar participantes filtrados
-  const fetchParticipantesFiltrados = async (fechaInicio, fechaFin, tipoRegistradorId) => {
-    setLoading(true);
-    try {
-      const API_URL = process.env.REACT_APP_API_URL || environments.apiUrl;
-      const response = await axios.get(`${API_URL}/usuarios-otros`);
-      
-      console.log('Datos recibidos de la API:', response.data.data); // Debug
-      
-      if (response.data.success) {
-        // Formatear las fechas de filtro para comparación
-        const fechaInicioFormateada = new Date(fechaInicio);
-        fechaInicioFormateada.setUTCHours(0, 0, 0, 0);
-        
-        const fechaFinFormateada = new Date(fechaFin);
-        fechaFinFormateada.setUTCHours(23, 59, 59, 999); // Hasta el final del día
-        
-        console.log('Rango de fechas para filtrar:', {
-          inicio: fechaInicioFormateada.toISOString(),
-          fin: fechaFinFormateada.toISOString()
-        });
-        
-        const participantesFiltrados = response.data.data.filter(participante => {
-          if (!participante.fecha_registro) return false;
-          
-          // Obtener la fecha de registro del participante
-          const fechaRegistro = new Date(participante.fecha_registro);
-          
-          // Asegurarse de que la fecha del participante esté en el mismo huso horario
-          const fechaRegistroAjustada = new Date(fechaRegistro.getTime() - (fechaRegistro.getTimezoneOffset() * 60000));
-          
-          // Verificar si la fecha de registro está dentro del rango
-          const cumpleFecha = fechaRegistroAjustada >= fechaInicioFormateada && 
-                            fechaRegistroAjustada <= fechaFinFormateada;
-          
-          // Comparación de tipo de registrador (asegurando tipos iguales)
-          const tipoRegistradorParticipante = participante.id_tipo_registrador_snapshot?.toString();
-          const tipoFiltro = tipoRegistradorId?.toString();
-          const cumpleTipo = !tipoFiltro || tipoRegistradorParticipante === tipoFiltro;
-          
-          if (cumpleFecha && cumpleTipo) {
-            console.log('Participante cumple filtros:', {
-              participante,
-              fechaRegistro: participante.fecha_registro,
-              fechaInicio: fechaInicioFormateada,
-              fechaFin: fechaFinFormateada,
-              tipoRegistrador: tipoRegistradorParticipante,
-              tipoFiltro
-            });
-            return true;
-          }
-          return false;
-        });
-        
-        console.log('Total de participantes que cumplen los filtros:', participantesFiltrados.length); // Debug
-        
-        // Mapear a un formato consistente para el componente
-        const participantesFormateados = participantesFiltrados.map(p => ({
-          id: p.id,
-          nombre: `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Sin nombre',
-          cedula: p.id_card,
-          celular: p.phone,
-          fecha_registro: p.fecha_registro,
-          tipo_registrador: p.nombre_tipo_registrador,
-          contador: 1 // Añadido para compatibilidad con el resto del código
-        }));
-        
-        console.log('Participantes formateados:', participantesFormateados); // Debug
-        setParticipants(participantesFormateados);
-      }
-    } catch (error) {
-      console.error('Error al cargar participantes:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Aplicar filtros automáticamente al cargar o cambiar los filtros
-  useEffect(() => {
-    if (selectedTipoRegistrador && filtroFechaInicio && filtroFechaFin) {
-      console.log('Aplicando filtros automáticamente...', { 
-        selectedTipoRegistrador, 
-        filtroFechaInicio,
-        filtroFechaFin
-      });
-      aplicarFiltro();
-    }
-  }, [selectedTipoRegistrador, filtroFechaInicio, filtroFechaFin]);
-
   // Función para aplicar el filtro
   const aplicarFiltro = () => {
-    // Validar que la fecha de inicio no sea mayor que la fecha de fin
-    const fechaInicio = new Date(filtroFechaInicio);
-    const fechaFin = new Date(filtroFechaFin);
-    
-    if (fechaInicio > fechaFin) {
-      alert('La fecha de inicio no puede ser mayor que la fecha de fin');
+    if (new Date(fechaInicio) > new Date(fechaFin)) {
+      alert('La fecha de inicio no puede ser mayor a la fecha de fin');
+      return;
+    }
+    if (!selectedTipoRegistrador) {
+      alert('Por favor seleccione un tipo de registrador');
       return;
     }
     
-    console.log('Aplicando filtro con:', {
-      fechaInicio: filtroFechaInicio,
-      fechaFin: filtroFechaFin,
-      tipoRegistrador: selectedTipoRegistrador,
-      registradoresDisponibles: registradores
-    });
-    
-    // Limpiar participantes actuales
+    // Limpiar estado antes de cargar nuevos participantes
     setParticipants([]);
+    setAllParticipants([]);
+    setAvailableParticipants([]);
     
-    // Llamar a la función que carga los participantes filtrados
-    fetchParticipantesFiltrados(filtroFechaInicio, filtroFechaFin, selectedTipoRegistrador);
+    // No limpiamos winners aquí, solo los filtramos en fetchParticipants
+    fetchParticipants();
   };
 
   // Estilos para el contenedor de pantalla completa
@@ -390,7 +409,6 @@ export default function SorteoPage() {
     left: 0,
     width: '100vw',
     height: '100vh',
-    backgroundColor: 'white',
     zIndex: 1000,
     display: 'flex',
     flexDirection: 'column',
@@ -398,7 +416,7 @@ export default function SorteoPage() {
     justifyContent: 'center',
     padding: '20px',
     overflow: 'hidden',
-    backgroundImage: "url('/assets/img/fondo_app.jpg')",
+    backgroundImage: "url('/assets/img/ruletafondo.png')",
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'center center',
     backgroundSize: 'cover'
@@ -418,68 +436,98 @@ export default function SorteoPage() {
           </button>
         </div>
         
-        <div className="flex flex-col items-center justify-center flex-grow w-full">
-          <div className="relative w-full max-w-2xl aspect-square">
-            <div 
-              ref={spinRef}
-              className="w-full h-full rounded-full border-8 border-gray-200 relative overflow-hidden transition-transform duration-5000 ease-out bg-white shadow-xl"
-              style={{
-                transform: `rotate(${rotation}deg)`,
-                transition: spinning ? `transform ${spinDuration}ms cubic-bezier(0.17, 0.67, 0.12, 0.99)` : 'none',
-                boxShadow: '0 0 20px rgba(0,0,0,0.2)'
-              }}
-            >
-              {participants.map((participant, index) => {
-                const sliceDegree = 360 / participants.length;
-                const rotate = sliceDegree * index;
-                const skew = 90 - sliceDegree;
-                const colorIndex = index % colors.length;
-                
-                return (
-                  <div
-                    key={participant.cedula}
-                    className="absolute w-1/2 h-1/2 origin-bottom-right"
-                    style={{
-                      transform: `rotate(${rotate}deg) skew(${skew}deg)`,
-                      transformOrigin: '0% 0%',
-                      overflow: 'hidden',
-                      left: '50%',
-                      top: '50%',
-                      pointerEvents: 'none'
-                    }}
-                  >
-                    <div 
-                      className="w-full h-full flex items-center justify-center"
-                      style={{
-                        backgroundColor: colors[colorIndex],
-                        transform: `skew(${skew}deg) rotate(${sliceDegree/2}deg)`,
-                        padding: '10px',
-                        boxSizing: 'border-box',
-                        position: 'relative',
-                        left: '-25%',
-                        textAlign: 'center',
-                        fontSize: '0.8rem',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.7)',
-                        width: '200%',
-                        height: '200%',
-                        transformOrigin: '0 0',
-                        border: '1px solid rgba(255,255,255,0.3)'
-                      }}
-                    >
-                      <div style={{ transform: 'rotate(45deg)', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ transform: 'scale(0.8)' }}>{shortenName(participant.nombre || 'Sin nombre')}</span>
+        <div className="flex flex-col items-center justify-center flex-grow w-full max-w-4xl px-4">
+          <h1 className="text-4xl font-bold text-gray-800 mb-8">Ruleta de la Suerte</h1>
+          
+          <div className="w-full max-w-2xl relative">
+            <div className="p-6 mb-6">
+              <div className="relative w-full aspect-square">
+                {/* Indicador de nombre mientras gira */}
+                {spinning && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
+                    <div className="bg-white/80 backdrop-blur-sm p-4 rounded-lg shadow-xl text-center">
+                      <div className="text-2xl font-bold text-blue-700 mb-2">🏆 ¡Girando! 🏆</div>
+                      <div className="text-3xl font-bold text-yellow-600">
+                        {currentHighlight || '...'}
                       </div>
                     </div>
                   </div>
-                );
-              })}
+                )}
+                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-3 z-10">
+                  <div className="w-8 h-10 bg-red-600 clip-arrow shadow-lg"></div>
+                </div>
+                <div 
+                  className="wheel-container w-full h-full rounded-full overflow-hidden border-8 border-gray-300 shadow-xl relative"
+                  style={wheelStyle}
+                >
+                  <svg width="100%" height="100%" viewBox="0 0 360 360">
+                    {participants.map((participant, index) => {
+                      const sliceDegree = 360 / participants.length;
+                      const startAngle = index * sliceDegree;
+                      const endAngle = (index + 1) * sliceDegree;
+
+                      const startRadians = (startAngle - 90) * Math.PI / 180;
+                      const endRadians = (endAngle - 90) * Math.PI / 180;
+                      
+                      const startX = 180 + 180 * Math.cos(startRadians);
+                      const startY = 180 + 180 * Math.sin(startRadians);
+                      const endX = 180 + 180 * Math.cos(endRadians);
+                      const endY = 180 + 180 * Math.sin(endRadians);
+
+                      const largeArcFlag = sliceDegree <= 180 ? 0 : 1;
+
+                      const d = [
+                        `M 180 180`,
+                        `L ${startX} ${startY}`,
+                        `A 180 180 0 ${largeArcFlag} 1 ${endX} ${endY}`,
+                        `Z`
+                      ].join(' ');
+
+                      const textRadians = (startAngle + sliceDegree / 2 - 90) * Math.PI / 180;
+                      const textX = 180 + 100 * Math.cos(textRadians);
+                      const textY = 180 + 100 * Math.sin(textRadians);
+                      const textRotation = startAngle + sliceDegree / 2;
+
+                      return (
+                        <g key={index}>
+                          <path d={d} fill={colors[index % colors.length]} stroke="#fff" strokeWidth="1" />
+                          <text
+                            x={textX}
+                            y={textY}
+                            fill="#fff"
+                            fontWeight="bold"
+                            fontSize="12"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            transform={`rotate(${textRotation}, ${textX}, ${textY})`}
+                          >
+                            {shortenName(participant.nombre || 'Sin nombre')}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-center relative z-40">
+                <button
+                  onClick={startDraw}
+                  disabled={spinning || participants.length === 0}
+                  className={`px-8 py-3 rounded-full text-lg font-bold shadow-lg transform hover:scale-105 transition-all ${
+                    spinning || participants.length === 0
+                      ? "bg-gray-400/50 backdrop-blur-sm cursor-not-allowed"
+                      : "bg-gradient-to-r from-green-500/80 to-emerald-600/80 backdrop-blur-sm text-white hover:from-green-500 hover:to-emerald-600"
+                  }`}
+                >
+                  {spinning ? "Girando..." : "¡Girar Ruleta!"}
+                </button>
+              </div>
             </div>
-            
+
             {winner && showWinnerAnimation && (
-              <div className="absolute inset-0 flex items-center justify-center z-30">
-                <div className="p-6 bg-green-100 rounded-lg shadow-xl text-center border-4 border-yellow-400 animate-bounce" style={{
+              <div className="fixed inset-0 flex items-center justify-center z-30 pointer-events-none">
+                <div className="p-6 bg-green-100 rounded-lg shadow-xl text-center border-4 border-yellow-400 animate-bounce max-w-md w-full mx-4" style={{
                   background: 'linear-gradient(135deg, #f0fff0 0%, #e6ffe6 100%)',
                   boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
                 }}>
@@ -505,35 +553,6 @@ export default function SorteoPage() {
                 </div>
               </div>
             )}
-            
-            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-3 z-10">
-              <div className="clip-arrow" style={{
-                width: '24px',
-                height: '32px',
-                backgroundColor: '#dc2626',
-                clipPath: 'polygon(0% 0%, 100% 0%, 50% 100%)',
-                transform: 'translateY(0)',
-                position: 'relative',
-                zIndex: 10,
-                marginTop: '10px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-              }}></div>
-            </div>
-          </div>
-
-          
-          <div className="relative z-10">
-            <button
-              onClick={startDraw}
-              disabled={spinning || participants.length === 0}
-              className={`mt-8 px-8 py-4 text-xl font-bold text-white rounded-full shadow-lg transition-all transform hover:scale-105 ${
-                spinning || participants.length === 0
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
-              {spinning ? 'Girando...' : 'Girar Ruleta'}
-            </button>
           </div>
         </div>
       </div>
@@ -545,19 +564,11 @@ export default function SorteoPage() {
     <div 
       className="bg-white bg-opacity-90 py-8 px-4"
       style={{
-        backgroundImage: "url('/assets/img/fondo_app.jpg')",
+        backgroundImage: "url('/assets/img/celeste.jpg')",
         backgroundRepeat: "no-repeat",
         backgroundPosition: "center center",
         backgroundSize: "cover",
-        backgroundAttachment: "fixed",
-        minHeight: "100vh",
-        width: "100%",
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        overflowY: "auto"
+        minHeight: "83.65vh"
       }}
       ref={containerRef}
     >
@@ -581,60 +592,67 @@ export default function SorteoPage() {
             </div>
           </div>
           
-          <div className="space-y-4 mb-6">
-            <div className="flex flex-wrap justify-center items-center gap-4">
-              <div className="flex flex-wrap gap-4">
-                <div className="flex items-center gap-2">
-                  <label className="text-gray-700 font-medium whitespace-nowrap">
-                    Desde:
-                  </label>
-                  <input
-                    type="date"
-                    value={filtroFechaInicio}
-                    onChange={handleFechaInicioChange}
-                    className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    max={filtroFechaFin}
-                  />
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <label className="text-gray-700 font-medium whitespace-nowrap">
-                    Hasta:
-                  </label>
-                  <input
-                    type="date"
-                    value={filtroFechaFin}
-                    onChange={handleFechaFinChange}
-                    className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    min={filtroFechaInicio}
-                  />
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <label className="text-gray-700 font-medium whitespace-nowrap">
-                  Tipo de Registrador:
+          <div className="bg-white/90 p-4 rounded-lg shadow-md mb-6">
+            <h3 className="text-lg font-medium text-gray-800 mb-4">Filtros de Búsqueda</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo de Registrador
                 </label>
                 <select
                   value={selectedTipoRegistrador}
                   onChange={handleTipoRegistradorChange}
-                  className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[200px]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
                 >
-                  {registradores.length === 0 ? (
-                    <option value="">Cargando tipos...</option>
-                  ) : (
-                    registradores.map((tipo) => (
-                      <option key={tipo.id} value={tipo.id}>
-                        {tipo.nombre}
-                      </option>
-                    ))
-                  )}
+                  <option value="" disabled>Seleccione un tipo</option>
+                  {registradores.map((tipo) => (
+                    <option key={tipo.id} value={tipo.id}>
+                      {tipo.nombre}
+                    </option>
+                  ))}
                 </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de inicio
+                </label>
+                <input
+                  type="date"
+                  value={fechaInicio}
+                  onChange={handleFechaInicioChange}
+                  max={fechaFin}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de fin
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={fechaFin}
+                    onChange={handleFechaFinChange}
+                    min={fechaInicio}
+                    max={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button
+                    onClick={aplicarFiltro}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 whitespace-nowrap"
+                    disabled={loading}
+                  >
+                    {loading ? 'Cargando...' : 'Aplicar Filtros'}
+                  </button>
+                </div>
               </div>
             </div>
             
             {selectedTipoRegistrador && registradores.length > 0 && (
-              <div className="text-center text-sm text-gray-600">
+              <div className="mt-2 text-sm text-gray-600">
                 {registradores.find(t => t.id.toString() === selectedTipoRegistrador)?.descripcion}
               </div>
             )}
@@ -650,7 +668,17 @@ export default function SorteoPage() {
             {loading ? (
               <p className="text-gray-500 text-center py-8">Cargando participantes...</p>
             ) : participants.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No hay participantes para la fecha seleccionada</p>
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-4">No hay participantes para la fecha seleccionada</p>
+                {winners.length > 0 && (
+                  <button
+                    onClick={resetWinners}
+                    className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                  >
+                    Reiniciar lista de ganadores
+                  </button>
+                )}
+              </div>
             ) : (
               <ul className="divide-y max-h-[600px] overflow-y-auto">
                 {participants.map((p, index) => (
@@ -668,20 +696,28 @@ export default function SorteoPage() {
 
           {/* Ruleta */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white/10 backdrop-blur-lg text-gray-800 p-5 rounded-lg shadow-lg flex flex-col items-center border border-white/20">
+            <div className="bg-white/10 backdrop-blur-lg text-gray-800 p-5 rounded-lg shadow-lg flex flex-col items-center border border-white/20 relative">
               <h2 className="text-xl font-bold mb-4 text-blue-700">Ruleta de la Suerte</h2>
 
               {participants.length > 0 && (
                 <div className="relative w-full max-w-md aspect-square">
+                  {/* Indicador de nombre mientras gira */}
+                  {spinning && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
+                      <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-lg text-center">
+                        <div className="text-xl font-bold text-blue-700 mb-1">🏆 ¡Girando! 🏆</div>
+                        <div className="text-2xl font-bold text-yellow-600">
+                          {currentHighlight || '...'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-3 z-10">
                     <div className="w-6 h-8 bg-red-600 clip-arrow shadow-md"></div>
                   </div>
                   <div 
                     className="wheel-container w-full h-full rounded-full overflow-hidden border-8 border-gray-300 shadow-lg relative"
-                    style={{
-                      transform: `rotate(${rotation}deg)`,
-                      transition: `transform ${spinDuration}ms cubic-bezier(0.2, 0.8, 0.2, 1)`
-                    }}
+                    style={wheelStyle}
                   >
                     <svg width="100%" height="100%" viewBox="0 0 360 360">
                       {participants.map((participant, index) => {
