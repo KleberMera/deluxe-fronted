@@ -15,6 +15,7 @@ const DashboardVarios = () => {
   const [error, setError] = useState(null);
   const [selectedBrigada, setSelectedBrigada] = useState('');
   const [filteredData, setFilteredData] = useState(null);
+  const [userSelectedBrigada, setUserSelectedBrigada] = useState(false); // evita sobreescribir la selección del usuario
   const [isResending] = useState(false); // Estado para controlar actualizaciones durante reenvío (no usado por ahora)
   const [registradorTipo, setRegistradorTipo] = useState('all'); // filtro por tipo de registrador cuando hay brigada seleccionada
 
@@ -48,6 +49,7 @@ const DashboardVarios = () => {
           total_por_tipo_registro_por_brigada: d.total_por_tipo_registro_por_brigada || d.total_por_tipo_registro_por_brigada || [],
           lastFetched: Date.now()
         });
+        // Nota: la selección por defecto de la brigada activa se realiza en un efecto separado
       } else {
         throw new Error('Error en la respuesta de la API');
       }
@@ -83,6 +85,17 @@ const DashboardVarios = () => {
     }
   }, [isResending]);
 
+  // Cuando llegan los datos, si no hay brigada seleccionada por el usuario, seleccionar la brigada activa por defecto
+  useEffect(() => {
+    // no sobreescribir si el usuario ya hizo una selección explícita
+    if (userSelectedBrigada) return;
+    if (selectedBrigada) return; // ya hay una seleccionada
+    const fromBrig = (data.brigadas || []).find(b => b.activa);
+    const fromTotals = (data.total_por_tipo_registro_por_brigada || []).find(b => b.activa);
+    const active = fromBrig || fromTotals;
+    if (active) setSelectedBrigada(String(active.id_brigada));
+  }, [data.brigadas, data.total_por_tipo_registro_por_brigada, selectedBrigada, userSelectedBrigada]);
+
   // ...existing code...
 
   useEffect(() => {
@@ -117,7 +130,8 @@ const DashboardVarios = () => {
       const total_registros = (brig && (brig.total_registros || brig.total_registros === 0)) ? (brig.total_registros || 0) : registradores.reduce((s, r) => s + (r.total || 0), 0);
       const registradores_activos = registradores.length;
       const brigadas_activas = brig && brig.activa ? 1 : 0;
-      const total_hoy = 0; // Si la API trae este dato por brigada lo podemos mapear aquí
+  // Calcular total_hoy sumando total_hoy de cada registrador si está disponible
+  const total_hoy = registradores.reduce((s, r) => s + (r.total_hoy || 0), 0);
 
       const overviewBrigada = {
         total_registros,
@@ -217,7 +231,7 @@ const DashboardVarios = () => {
           registrador_id: r.id_registrador,
           nombre_registrador: r.nombre_registrador,
           usuarios_count: r.total || 0,
-          usuarios_hoy: 0,
+          usuarios_hoy: r.total_hoy || 0,
           usuarios_semana: 0,
           tipo: tipoObj?.tipo || '' ,
           brigada_nombre: brig?.nombre_brigada || ''
@@ -228,7 +242,7 @@ const DashboardVarios = () => {
           registrador_id: r.id_registrador,
           nombre_registrador: r.nombre_registrador,
           usuarios_count: r.total || 0,
-          usuarios_hoy: 0,
+          usuarios_hoy: r.total_hoy || 0,
           usuarios_semana: 0,
           tipo: tipoObj.tipo,
           brigada_nombre: brig?.nombre_brigada || ''
@@ -240,7 +254,7 @@ const DashboardVarios = () => {
             registrador_id: `brigada-${brig.id_brigada}`,
             nombre_registrador: brig.nombre_brigada,
             usuarios_count: brig.total_registros || 0,
-            usuarios_hoy: 0,
+            usuarios_hoy: brig.total_hoy || 0,
             usuarios_semana: 0,
             tipo: 'Brigada',
             brigada_nombre: brig.nombre_brigada
@@ -253,9 +267,10 @@ const DashboardVarios = () => {
         if (brig.total_por_tipo && brig.total_por_tipo.length > 0) {
           return brig.total_por_tipo.flatMap(tipoObj => (tipoObj.registradores || []).map(r => ({
             registrador_id: r.id_registrador,
-            nombre_registrador: `${r.nombre_registrador} — ${tipoObj.tipo} — ${brig.nombre_brigada}`,
+            // Mostrar sólo el nombre en el área principal; el tipo y brigada se mostrarán a la derecha
+            nombre_registrador: r.nombre_registrador,
             usuarios_count: r.total || 0,
-            usuarios_hoy: 0,
+            usuarios_hoy: r.total_hoy || 0,
             usuarios_semana: 0,
             tipo: tipoObj.tipo,
             brigada_nombre: brig.nombre_brigada
@@ -265,12 +280,14 @@ const DashboardVarios = () => {
           registrador_id: `brigada-${brig.id_brigada}`,
           nombre_registrador: brig.nombre_brigada,
           usuarios_count: brig.total_registros || 0,
-          usuarios_hoy: 0,
+          usuarios_hoy: brig.total_hoy || 0,
           usuarios_semana: 0,
           tipo: 'Brigada',
           brigada_nombre: brig.nombre_brigada
         }];
       });
+      // Si no hay brigada seleccionada, excluir entradas que representen la brigada en sí (tipo 'Brigada')
+      allRegistradores = allRegistradores.filter(r => r.tipo !== 'Brigada');
     }
 
     // Ordenar por total descendente
@@ -346,7 +363,12 @@ const DashboardVarios = () => {
                     </div>
                   </div>
                 </div>
-                <div className="text-sm text-gray-500">{registrador.tipo}{registrador.brigada_nombre ? ` — ${registrador.brigada_nombre}` : ''}</div>
+                {selectedBrigada ? (
+                  <div className="text-sm text-gray-500">
+                    {registrador.tipo || ''}
+                    {(!selectedBrigada && registrador.brigada_nombre) ? ` — ${registrador.brigada_nombre}` : ''}
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}
@@ -362,7 +384,8 @@ const DashboardVarios = () => {
       usuarios_count: b.total_registros || 0
     }));
 
-    const brigadasOrdenadas = brigadasUnicas.sort((a, b) => b.usuarios_count - a.usuarios_count);
+  // Ordenar de menor a mayor según petición
+  const brigadasOrdenadas = brigadasUnicas.sort((a, b) => a.usuarios_count - b.usuarios_count);
 
     return (
       <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 shadow-lg border border-gray-200">
@@ -589,12 +612,13 @@ const ExecutiveSummary = () => {
               <div className="relative w-full sm:w-64">
                 <select
                   value={selectedBrigada}
-                  onChange={(e) => setSelectedBrigada(e.target.value)}
+                  onChange={(e) => { setSelectedBrigada(e.target.value); setUserSelectedBrigada(true); }}
                   className="appearance-none w-full bg-white text-gray-800 border border-gray-300 rounded-lg py-2 pl-4 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Todas las brigadas</option>
-                  {data.brigadas
+                  {(data.brigadas || [])
                     .filter((b, index, self) => index === self.findIndex(br => br.id_brigada === b.id_brigada))
+                    .sort((a, b) => a.id_brigada - b.id_brigada)
                     .map(brigada => (
                       <option key={brigada.id_brigada} value={brigada.id_brigada}>
                         Brigada {brigada.id_brigada}: {brigada.nombre_brigada}
@@ -608,7 +632,7 @@ const ExecutiveSummary = () => {
 
               {selectedBrigada && (
                 <button
-                  onClick={() => setSelectedBrigada('')}
+                  onClick={() => { setSelectedBrigada(''); setUserSelectedBrigada(true); }}
                   className="flex items-center justify-center w-full sm:w-auto bg-white text-blue-600 hover:bg-gray-100 px-3 py-2 rounded-lg transition-all text-sm font-medium"
                 >
                   <X size={16} className="mr-1" />
