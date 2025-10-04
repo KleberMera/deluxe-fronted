@@ -10,6 +10,7 @@ import DashboardAdmin from './components/TablasDashboard';
 import ManualRegistroVarios from './v2/components/RegistroManualVarios';
 import DashboardVarios from './v2/components/AdminDashboardVarios';
 import SorteoPage from './v2/components/SorteoPage';
+import LinkAccesos from './v2/components/LinkAccesos';
 
 
 function Home() {
@@ -50,6 +51,7 @@ function App() {
         <Route path="/administracion-tablas" element={<DashboardAdmin />} />
         <Route path='/registro-usuarios-varios' element={<ManualRegistroVarios />} />
                 <Route path='/admin-panel-varios' element={<DashboardVarios />} />
+          <Route path="/accesos" element={<LinkAccesos />} />
         <Route path="/sorteos-varios" element={<SorteoPage />} />
 
 
