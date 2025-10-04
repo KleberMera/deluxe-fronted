@@ -526,7 +526,7 @@ const ExecutiveSummary = () => {
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <p className="text-gray-600 text-sm mb-1">Registrador líder</p>
           <p className="text-xl font-bold text-green-600 truncate">
-            {registradorLider?.nombre_registrador || 'N/A'}
+            {registradorLider?.nombre_registrador || '-'}
           </p>
           <p className="text-xs text-gray-500">
             {registradorLider?.usuarios_count || 0} registros
