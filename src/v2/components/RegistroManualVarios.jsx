@@ -160,8 +160,10 @@ const ManualRegistroVarios = () => {
           confirmButtonColor: '#f59e0b',
           confirmButtonText: 'Entendido'
         }).then(() => {
-          // Limpiar formulario
+          // Limpiar formulario pero mantener registrador
+          const currentRegistrador = formik.values.id_registrador;
           formik.resetForm();
+          formik.setFieldValue('id_registrador', currentRegistrador);
           setSelectedLocation(null);
           setCurrentStep(1);
         });
@@ -185,10 +187,6 @@ const ManualRegistroVarios = () => {
                   <p className="text-gray-500 font-semibold">Teléfono:</p>
                   <p>{data.phone}</p>
                 </div>
-                {/* <div>
-                  <p className="text-gray-500 font-semibold">Brigada anterior:</p>
-                  <p>{data.nombre_tipo_registrador || 'N/A'}</p>
-                </div> */}
               </div>
               <p className="text-sm text-gray-600 mt-2">
                 ¿Desea autocompletar el formulario con esta información?
@@ -203,7 +201,8 @@ const ManualRegistroVarios = () => {
           cancelButtonText: 'No, limpiar formulario'
         }).then((result) => {
           if (result.isConfirmed) {
-            // Autocompletar formulario con los datos existentes
+            // Autocompletar formulario con los datos existentes (preservando registrador)
+            const currentRegistrador = formik.values.id_registrador;
             formik.setValues({
               firstName: data.first_name || '',
               lastName: data.last_name || '',
@@ -215,7 +214,7 @@ const ManualRegistroVarios = () => {
               ubicacionDetallada: data.ubicacion_detallada || '',
               latitud: data.latitud ? parseFloat(data.latitud) : null,
               longitud: data.longitud ? parseFloat(data.longitud) : null,
-              id_registrador: ''
+              id_registrador: currentRegistrador
             });
 
             // Si hay coordenadas, establecer la ubicación seleccionada
@@ -228,8 +227,10 @@ const ManualRegistroVarios = () => {
 
             toast.success('Formulario autocompletado con información existente');
           } else {
-            // Limpiar formulario
+            // Limpiar formulario pero mantener registrador
+            const currentRegistrador = formik.values.id_registrador;
             formik.resetForm();
+            formik.setFieldValue('id_registrador', currentRegistrador);
             setSelectedLocation(null);
             setCurrentStep(1);
           }
@@ -307,7 +308,10 @@ const ManualRegistroVarios = () => {
           confirmButtonText: 'Aceptar'
         });
 
+        // Resetear formulario pero mantener registrador seleccionado
+        const currentRegistrador = formik.values.id_registrador;
         formik.resetForm();
+        formik.setFieldValue('id_registrador', currentRegistrador);
         setSelectedLocation(null);
         setCurrentStep(1);
       } catch (error) {
@@ -383,27 +387,28 @@ const ManualRegistroVarios = () => {
     let isValid = true;
     
     if (currentStep === 1) {
+      if (!formik.values.id_registrador) {
+        isValid = false;
+      }
+      if (formik.errors.id_registrador) {
+        isValid = false;
+      }
+    } else if (currentStep === 2) {
       if (!formik.values.firstName || !formik.values.lastName || !formik.values.idCard || !formik.values.phone) {
         isValid = false;
       }
       if (formik.errors.firstName || formik.errors.lastName || formik.errors.idCard || formik.errors.phone) {
         isValid = false;
       }
-    } else if (currentStep === 2) {
+    } else if (currentStep === 3) {
       if (!formik.values.provinciaId || !formik.values.cantonId || !formik.values.barrioId || !formik.values.ubicacionDetallada || !selectedLocation) {
         isValid = false;
       }
       if (formik.errors.ubicacionDetallada) {
         isValid = false;
       }
-    } else if (currentStep === 3) {
-      if (!selectedLocation || !formik.values.id_registrador) {
-        isValid = false;
-      }
-      if (formik.errors.id_registrador) {
-        isValid = false;
-      }
     }
+    // No hay validación para currentStep === 4 porque es el paso final
     
     if (isValid) {
       setCurrentStep(currentStep + 1);
@@ -416,10 +421,15 @@ const ManualRegistroVarios = () => {
     setCurrentStep(currentStep - 1);
   };
 
+  const handleFinalSubmit = async () => {
+    // Ejecutar la función onSubmit de formik manualmente
+    await formik.submitForm();
+  };
+
   const renderStepIndicator = () => {
     return (
       <div className="flex justify-center mb-4 md:mb-6">
-        {[1, 2, 3].map((step) => (
+        {[1, 2, 3, 4].map((step) => (
           <React.Fragment key={step}>
             <div
               className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center ${
@@ -428,8 +438,8 @@ const ManualRegistroVarios = () => {
             >
               {step}
             </div>
-            {step < 3 && (
-              <div className={`w-10 md:w-16 h-1 flex items-center ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+            {step < 4 && (
+              <div className={`w-8 md:w-12 h-1 flex items-center ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
             )}
           </React.Fragment>
         ))}
@@ -442,10 +452,72 @@ const ManualRegistroVarios = () => {
       case 1:
         return (
           <div className="space-y-3 md:space-y-4">
+            <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Seleccionar Registrador</h2>
+            
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label htmlFor="id_registrador" className="block text-gray-700 font-medium mb-1">
+                  Registrador <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="id_registrador"
+                  name="id_registrador"
+                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
+                    formik.touched.id_registrador && formik.errors.id_registrador ? 'border-red-500' : 'border-gray-300'
+                  } transition-all duration-200`}
+                  onChange={formik.handleChange}
+                  value={formik.values.id_registrador}
+                >
+                  <option value="">Seleccione un registrador</option>
+                  {registradores.map(registrador => (
+                    <option key={registrador.id} value={registrador.id}>
+                      {registrador.nombre_registrador}
+                    </option>
+                  ))}
+                </select>
+                {formik.touched.id_registrador && formik.errors.id_registrador && (
+                  <div className="text-red-500 text-xs mt-1">{formik.errors.id_registrador}</div>
+                )}
+              </div>
+
+              {/* Tipo de registrador (solo lectura) */}
+              {formik.values.id_registrador && (
+                <div>
+                  <label className="block text-gray-700 font-medium mb-1">Tipo de Registrador</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-gray-100 text-gray-700"
+                    value={
+                      registradores.find(r => String(r.id) === String(formik.values.id_registrador))?.nombre_tipo || ''
+                    }
+                    readOnly
+                    disabled
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end pt-4">
+              <button
+                type="button"
+                onClick={nextStep}
+                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
+              >
+                Siguiente
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-3 md:space-y-4">
             <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Información Personal</h2>            
             <div className="grid grid-cols-1 gap-3">
-
-                            <div className="relative">
+              <div className="relative">
                 <label htmlFor="idCard" className="block text-gray-700 font-medium mb-1">Cédula</label>
                 <div className="flex gap-2">
                   <input
@@ -531,8 +603,6 @@ const ManualRegistroVarios = () => {
                 )}
               </div>
               
-
-              
               <div>
                 <label htmlFor="phone" className="block text-gray-700 font-medium mb-1">Contacto de Whatsapp</label>
                 <input
@@ -561,7 +631,17 @@ const ManualRegistroVarios = () => {
               </div>
             </div>
             
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-between pt-4">
+              <button
+                type="button"
+                onClick={prevStep}
+                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Anterior
+              </button>
               <button
                 type="button"
                 onClick={nextStep}
@@ -576,7 +656,7 @@ const ManualRegistroVarios = () => {
           </div>
         );
 
-      case 2:
+      case 3:
         return (
           <div className="space-y-3 md:space-y-4">
             <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Ubicación Geográfica</h2>
@@ -718,81 +798,74 @@ const ManualRegistroVarios = () => {
           </div>
         );
 
-      case 3:
+      case 4:
         return (
           <div className="space-y-3 md:space-y-4">
-            <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Finalizar Registro</h2>
-            
-            {/* Selector de registrador */}
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <label htmlFor="id_registrador" className="block text-gray-700 font-medium mb-1">
-                  Registrador <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="id_registrador"
-                  name="id_registrador"
-                  className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${
-                    formik.touched.id_registrador && formik.errors.id_registrador ? 'border-red-500' : 'border-gray-300'
-                  } transition-all duration-200`}
-                  onChange={formik.handleChange}
-                  value={formik.values.id_registrador}
-                >
-                  <option value="">Seleccione un registrador</option>
-                  {registradores.map(registrador => (
-                    <option key={registrador.id} value={registrador.id}>
-                      {registrador.nombre_registrador}
-                    </option>
-                  ))}
-                </select>
-                {formik.touched.id_registrador && formik.errors.id_registrador && (
-                  <div className="text-red-500 text-xs mt-1">{formik.errors.id_registrador}</div>
-                )}
+            {/* <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Revisar Información</h2> */}
+
+            {/* Resumen completo del registro */}
+            <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200">
+              <h3 className="font-semibold text-gray-700 mb-3">Resumen Completo de Registro</h3>
+              
+              {/* Información del Registrador */}
+              <div className="mb-4 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
+                <h4 className="font-medium text-blue-800 text-sm mb-1">Registrador Seleccionado</h4>
+                <p className="text-sm">
+                  <span className="font-medium">
+                    {registradores.find(r => String(r.id) === String(formik.values.id_registrador))?.nombre_registrador || 'No seleccionado'}
+                  </span>
+                  {" - "}
+                  <span className="text-blue-600">
+                    {registradores.find(r => String(r.id) === String(formik.values.id_registrador))?.nombre_tipo || ''}
+                  </span>
+                </p>
               </div>
 
-              {/* Tipo de registrador (solo lectura) */}
-              {formik.values.id_registrador && (
+              <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label className="block text-gray-700 font-medium mb-1">Tipo de Registrador</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-gray-100 text-gray-700"
-                    value={
-                      registradores.find(r => String(r.id) === String(formik.values.id_registrador))?.nombre_tipo || ''
-                    }
-                    readOnly
-                    disabled
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Resumen del registro */}
-            <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200">
-              <h3 className="font-semibold text-gray-700 mb-2">Resumen de Registro</h3>
-              <div className="grid grid-cols-1 gap-3 mb-3">
-                <div>
-                  <p className="text-xs text-gray-500">Nombres Completos</p>
-                  <p className="font-medium text-sm">{formik.values.firstName} {formik.values.lastName}</p>
+                  <p className="text-xs text-gray-500 font-medium">Nombres Completos</p>
+                  <p className="font-medium text-sm text-gray-800">{formik.values.firstName} {formik.values.lastName}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Cédula</p>
-                  <p className="font-medium text-sm">{formik.values.idCard}</p>
+                  <p className="text-xs text-gray-500 font-medium">Cédula</p>
+                  <p className="font-medium text-sm text-gray-800">{formik.values.idCard}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Teléfono</p>
-                  <p className="font-medium text-sm">{formik.values.phone}</p>
+                  <p className="text-xs text-gray-500 font-medium">Teléfono WhatsApp</p>
+                  <p className="font-medium text-sm text-gray-800">{formik.values.phone}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Ubicación Detallada</p>
-                  <p className="font-medium text-sm">{formik.values.ubicacionDetallada}</p>
+                  <p className="text-xs text-gray-500 font-medium">Ubicación Geográfica</p>
+                  <p className="font-medium text-sm text-gray-800">
+                    {provincias.find(p => String(p.id) === String(formik.values.provinciaId))?.nombre || 'No seleccionada'} - {" "}
+                    {cantones.find(c => String(c.id) === String(formik.values.cantonId))?.nombre || 'No seleccionado'} - {" "}
+                    {barrios.find(b => String(b.id) === String(formik.values.barrioId))?.nombre || 'No seleccionado'}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Coordenadas</p>
-                  <p className="font-medium text-sm">
+                  <p className="text-xs text-gray-500 font-medium">Ubicación Detallada</p>
+                  <p className="font-medium text-sm text-gray-800">{formik.values.ubicacionDetallada}</p>
+                </div>
+                {/* <div>
+                  <p className="text-xs text-gray-500 font-medium">Coordenadas GPS</p>
+                  <p className="font-medium text-sm text-gray-800 font-mono">
                     {selectedLocation && typeof selectedLocation.lat === 'number' && typeof selectedLocation.lng === 'number'
                       ? `${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`
                       : 'No seleccionado'}
+                  </p>
+                </div> */}
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-yellow-800">Verificar Información</p>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    Por favor revise cuidadosamente toda la información antes de continuar. Una vez confirmado, se procederá al registro final.
                   </p>
                 </div>
               </div>
@@ -810,8 +883,9 @@ const ManualRegistroVarios = () => {
                 Anterior
               </button>
               <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center text-sm"
+                type="button"
+                onClick={handleFinalSubmit}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center text-sm"
                 disabled={loading}
               >
                 {loading ? (
@@ -825,15 +899,17 @@ const ManualRegistroVarios = () => {
                 ) : (
                   <span className="flex items-center">
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1"></path>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
-                    Registrar Usuario
+                    REGISTRAR USUARIO
                   </span>
                 )}
               </button>
             </div>
           </div>
         );
+
+
 
       default:
         return null;
@@ -868,13 +944,16 @@ const ManualRegistroVarios = () => {
             >
               REGISTRO DE USUARIOS
             </h1>
+            {formik.values.id_registrador && (
+              <p className="text-sm md:text-base text-blue-100 mt-1 font-medium">
+                {registradores.find(r => String(r.id) === String(formik.values.id_registrador))?.nombre_tipo || ''}
+              </p>
+            )}
           </div>
           
           <div className="p-3 md:p-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
             {renderStepIndicator()}
-            <form onSubmit={formik.handleSubmit}>
-              {renderStepContent()}
-            </form>
+            {renderStepContent()}
           </div>
         </div>
         
