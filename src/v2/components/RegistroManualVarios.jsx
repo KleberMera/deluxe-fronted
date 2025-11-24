@@ -138,6 +138,7 @@ const ManualRegistroVarios = () => {
       const { exists, data, message } = parseApiCheckResponse(response);
 
       if (exists) {
+        // Si exists es true, significa que ya está registrado en la brigada actual
         MySwal.fire({
           title: 'Usuario ya registrado',
           html: (
@@ -164,7 +165,77 @@ const ManualRegistroVarios = () => {
           setSelectedLocation(null);
           setCurrentStep(1);
         });
+      } else if (data && data.id) {
+        // Si exists es false pero hay data, significa que existe en otra brigada
+        MySwal.fire({
+          title: 'Usuario encontrado en otra brigada',
+          html: (
+            <div className="text-left">
+              <p className="mb-2 font-semibold text-blue-600">{message}</p>
+              <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                <div>
+                  <p className="text-gray-500 font-semibold">Nombres:</p>
+                  <p>{data.first_name} {data.last_name}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 font-semibold">Cédula:</p>
+                  <p>{data.id_card}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 font-semibold">Teléfono:</p>
+                  <p>{data.phone}</p>
+                </div>
+                {/* <div>
+                  <p className="text-gray-500 font-semibold">Brigada anterior:</p>
+                  <p>{data.nombre_tipo_registrador || 'N/A'}</p>
+                </div> */}
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                ¿Desea autocompletar el formulario con esta información?
+              </p>
+            </div>
+          ),
+          icon: 'info',
+          showCancelButton: true,
+          confirmButtonColor: '#2563eb',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Sí, autocompletar',
+          cancelButtonText: 'No, limpiar formulario'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Autocompletar formulario con los datos existentes
+            formik.setValues({
+              firstName: data.first_name || '',
+              lastName: data.last_name || '',
+              idCard: data.id_card || '',
+              phone: data.phone || '',
+              provinciaId: data.provincia_id ? String(data.provincia_id) : '',
+              cantonId: data.canton_id ? String(data.canton_id) : '',
+              barrioId: data.barrio_id ? String(data.barrio_id) : '',
+              ubicacionDetallada: data.ubicacion_detallada || '',
+              latitud: data.latitud ? parseFloat(data.latitud) : null,
+              longitud: data.longitud ? parseFloat(data.longitud) : null,
+              id_registrador: ''
+            });
+
+            // Si hay coordenadas, establecer la ubicación seleccionada
+            if (data.latitud && data.longitud) {
+              setSelectedLocation({
+                lat: parseFloat(data.latitud),
+                lng: parseFloat(data.longitud)
+              });
+            }
+
+            toast.success('Formulario autocompletado con información existente');
+          } else {
+            // Limpiar formulario
+            formik.resetForm();
+            setSelectedLocation(null);
+            setCurrentStep(1);
+          }
+        });
       } else {
+        // Usuario completamente nuevo
         MySwal.fire({
           title: 'Usuario no registrado',
           text: message || 'No se encontró registro para esta cédula. Puede proceder con el registro.',
