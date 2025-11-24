@@ -661,7 +661,7 @@ export default function SorteoPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Lista de Participantes */}
-          <div className="bg-white/10 backdrop-blur-lg p-6 rounded-lg shadow-lg border border-white/20">
+          <div className="bg-white/90 p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-bold mb-4 text-blue-700 border-b pb-2">
               Participantes ({participants.length})
             </h2>
@@ -696,7 +696,7 @@ export default function SorteoPage() {
 
           {/* Ruleta */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white/10 backdrop-blur-lg text-gray-800 p-5 rounded-lg shadow-lg flex flex-col items-center border border-white/20 relative">
+            <div className="bg-white/90 text-gray-800 p-5 rounded-lg shadow-md flex flex-col items-center relative">
               <h2 className="text-xl font-bold mb-4 text-blue-700">Ruleta de la Suerte</h2>
 
               {participants.length > 0 && (
@@ -786,7 +786,7 @@ export default function SorteoPage() {
             </div>
 
             {/* Ganador */}
-            <div className="bg-white/10 backdrop-blur-lg text-gray-800 p-5 rounded-lg shadow-lg border border-white/20">
+            <div className="bg-white/90 text-gray-800 p-5 rounded-lg shadow-md">
               <h2 className="text-xl font-bold mb-3 text-blue-700 border-b pb-2">
                 Resultado del Sorteo
               </h2>
@@ -808,7 +808,7 @@ export default function SorteoPage() {
             </div>
 
             {/* Sección de Historial de Ganadores */}
-            <div className="bg-white/10 backdrop-blur-lg p-6 rounded-lg shadow-lg border border-white/20">
+            <div className="bg-white/90 p-6 rounded-lg shadow-md">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-blue-700">Historial de Ganadores</h2>
                 <button 
@@ -833,22 +833,22 @@ export default function SorteoPage() {
               </div>
               
               {showHistory && (
-                <div className="border border-white/20 rounded-lg overflow-hidden">
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
                   {history.length > 0 ? (
                     <div className="max-h-80 overflow-y-auto">
-                      <table className="min-w-full divide-y divide-white/20">
-                        <thead className="bg-white/10 backdrop-blur-sm">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
                           <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-blue-200 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Fecha y Hora
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-blue-200 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Ganador
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-blue-200 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Cédula
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-blue-200 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Teléfono
                             </th>
                           </tr>
