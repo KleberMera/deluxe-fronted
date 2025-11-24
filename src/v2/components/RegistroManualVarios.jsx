@@ -142,17 +142,11 @@ const ManualRegistroVarios = () => {
         MySwal.fire({
           title: 'Usuario ya registrado',
           html: (
-            <div className="text-left">
-              <p className="mb-2 font-semibold text-orange-600">{message}</p>
-              <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-                <div>
-                  <p className="text-gray-500 font-semibold">Nombres:</p>
-                  <p>{data?.first_name} {data?.last_name}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 font-semibold">Cédula:</p>
-                  <p>{data?.id_card}</p>
-                </div>
+            <div className="text-center">
+              <p className="mb-3 font-semibold text-orange-600">{message}</p>
+              <div className="bg-orange-50 p-3 rounded-lg">
+                <p className="font-medium">{data?.first_name} {data?.last_name}</p>
+                <p className="text-sm text-gray-600">Cédula: {data?.id_card}</p>
               </div>
             </div>
           ),
@@ -170,26 +164,17 @@ const ManualRegistroVarios = () => {
       } else if (data && data.id) {
         // Si exists es false pero hay data, significa que existe en otra brigada
         MySwal.fire({
-          title: 'Usuario encontrado en otra brigada',
+          title: 'Usuario en otra brigada',
           html: (
-            <div className="text-left">
-              <p className="mb-2 font-semibold text-blue-600">{message}</p>
-              <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-                <div>
-                  <p className="text-gray-500 font-semibold">Nombres:</p>
-                  <p>{data.first_name} {data.last_name}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 font-semibold">Cédula:</p>
-                  <p>{data.id_card}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 font-semibold">Teléfono:</p>
-                  <p>{data.phone}</p>
-                </div>
+            <div className="text-center">
+              <p className="mb-3 font-semibold text-blue-600">Puede proceder con el registro en esta.</p>
+              <div className="bg-blue-50 p-3 rounded-lg mb-3">
+                <p className="font-medium">{data.first_name} {data.last_name}</p>
+                <p className="text-sm text-gray-600">Cédula: {data.id_card}</p>
+                <p className="text-sm text-gray-600">Tel: {data.phone}</p>
               </div>
-              <p className="text-sm text-gray-600 mt-2">
-                ¿Desea autocompletar el formulario con esta información?
+              <p className="text-sm text-gray-600">
+                ¿Autocompletar con estos datos?
               </p>
             </div>
           ),
@@ -198,7 +183,7 @@ const ManualRegistroVarios = () => {
           confirmButtonColor: '#2563eb',
           cancelButtonColor: '#6b7280',
           confirmButtonText: 'Sí, autocompletar',
-          cancelButtonText: 'No, limpiar formulario'
+          cancelButtonText: 'No, limpiar'
         }).then((result) => {
           if (result.isConfirmed) {
             // Autocompletar formulario con los datos existentes (preservando registrador)
@@ -225,7 +210,7 @@ const ManualRegistroVarios = () => {
               });
             }
 
-            toast.success('Formulario autocompletado con información existente');
+            toast.success('Datos autocompletados exitosamente');
           } else {
             // Limpiar formulario pero mantener registrador
             const currentRegistrador = formik.values.id_registrador;
@@ -922,7 +907,7 @@ const ManualRegistroVarios = () => {
     >
       <div className="absolute inset-0 bg-black bg-opacity-20"></div>
       
-      <ToastContainer position="top-center" autoClose={5000} />
+      <ToastContainer position="top-center" autoClose={3000} />
       
       <div className="w-full max-w-md mx-2 relative z-10">
         {/* Logo más pequeño y centrado */}
@@ -965,73 +950,7 @@ const ManualRegistroVarios = () => {
             {renderStepContent()}
           </div>
         </div>
-        
-        {/* Redes sociales y canal */}
-        <div className="flex flex-col items-center mt-3 space-y-2">
-          <div className="flex space-x-3">
-            {/* Facebook */}
-            {/* <a 
-              href="https://facebook.com/pelicanotvcanal" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="transition-transform duration-300 hover:scale-110"
-            >
-              <img 
-                src="/assets/img/facebook.png" 
-                alt="Facebook Pelicano TV" 
-                className="h-7 md:h-9 object-contain"
-              />
-            </a> */}
-            
-            {/* TikTok */}
-            {/* <a 
-              href="https://tiktok.com/@pelicanotvcanal" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="transition-transform duration-300 hover:scale-110"
-            >
-              <img 
-                src="/assets/img/tiktok.png" 
-                alt="TikTok Pelicano TV" 
-                className="h-7 md:h-9 object-contain"
-              />
-            </a> */}
-            
-            {/* Instagram */}
-            {/* <a 
-              href="https://instagram.com/pelicanotvcanal" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="transition-transform duration-300 hover:scale-110"
-            >
-              <img 
-                src="/assets/img/instagram.png" 
-                alt="Instagram Pelicano TV" 
-                className="h-7 md:h-9 object-contain"
-              />
-            </a> */}
-            
-            {/* X (Twitter) */}
-            {/* <a 
-              href="https://x.com/pelicanotvcanal"
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="transition-transform duration-300 hover:scale-110"
-            >
-              <img 
-                src="/assets/img/x.png" 
-                alt="X Pelicano TV" 
-                className="h-7 md:h-9 object-contain"
-              />
-            </a> */}
-          </div>
-        
-          {/* <img 
-            src="/assets/img/@pelicanotvcanalnegro.png" 
-            alt="Pelican TV Canal" 
-            className="h-5 md:h-7 object-contain"
-          /> */}
-        </div>
+
       </div>
 
       {/* Modal de mapa */}
