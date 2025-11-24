@@ -945,9 +945,18 @@ const ManualRegistroVarios = () => {
               REGISTRO DE USUARIOS
             </h1>
             {formik.values.id_registrador && (
-              <p className="text-sm md:text-base text-blue-100 mt-1 font-medium">
-                {registradores.find(r => String(r.id) === String(formik.values.id_registrador))?.nombre_tipo || ''}
-              </p>
+              <div className="mt-2 bg-gradient-to-r from-slate-600/90 to-zinc-700/90 rounded-lg px-3 py-2 border border-slate-500/50 shadow-lg">
+                <p 
+                  className="text-sm md:text-base text-blue-100 font-bold tracking-wide drop-shadow-lg"
+                  style={{ 
+                    fontFamily: "'Doctor Glitch', sans-serif", 
+                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.7)',
+                    letterSpacing: '0.8px'
+                  }}
+                >
+                  🎖️ {registradores.find(r => String(r.id) === String(formik.values.id_registrador))?.nombre_tipo || ''}
+                </p>
+              </div>
             )}
           </div>
           
