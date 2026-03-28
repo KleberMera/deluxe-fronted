@@ -736,9 +736,9 @@ const DashboardAdmin = () => {
             <label className="block text-xs font-medium text-gray-500">Estado</label>
             <p className="text-sm">
               <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                selectedTable.entregado == 1 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                selectedTable.entregado === 1 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
               }`}>
-                {selectedTable.entregado == 1 ? 'Entregada' : 'Pendiente'}
+                {selectedTable.entregado === 1 ? 'Entregada' : 'Pendiente'}
               </span>
             </p>
           </div>
@@ -746,14 +746,14 @@ const DashboardAdmin = () => {
           <div className="bg-gray-50 p-3 rounded-lg">
             <label className="block text-xs font-medium text-gray-500">Tipo de Registro</label>
             <p className="text-sm font-semibold text-gray-900">
-              {selectedTable.registro_manual == 1 ? 'Manual' : 'Automático'}
+              {selectedTable.registro_manual === 1 ? 'Manual' : 'Automático'}
             </p>
           </div>
           
           <div className="bg-gray-50 p-3 rounded-lg">
             <label className="block text-xs font-medium text-gray-500">Validación OCR</label>
             <p className="text-sm font-semibold text-gray-900">
-              {selectedTable.ocr_validated == 1 ? 
+              {selectedTable.ocr_validated === 1 ? 
                 `Validado (${selectedTable.ocr_confidence}%)` : 'No validado'}
             </p>
           </div>

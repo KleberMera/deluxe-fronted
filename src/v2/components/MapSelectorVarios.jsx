@@ -93,9 +93,10 @@ const LocationMarker = ({ onLocationSelect, initialLocation, userLocation, selec
 
   // Cleanup function para manejar correctamente la limpieza de marcadores
   useEffect(() => {
+    const markerRefsSnapshot = markerRefs.current;
     return () => {
       // Limpiar referencias de marcadores
-      Object.values(markerRefs.current).forEach(ref => {
+      Object.values(markerRefsSnapshot).forEach(ref => {
         if (ref && ref.current) {
           try {
             ref.current.remove();
@@ -170,7 +171,7 @@ const MapSelectorSorteoVarios = ({ onLocationSelect, initialLocation, tempLocati
     } else {
       setLoadingLocation(false);
     }
-  }, []);
+  }, [initialLocation]);
 
   const getCurrentLocation = () => {
     setLoadingLocation(true);
@@ -288,11 +289,12 @@ const MapSelectorSorteoVarios = ({ onLocationSelect, initialLocation, tempLocati
 
   // Cleanup al desmontar el componente
   useEffect(() => {
+    const mapInstance = mapRef.current;
     return () => {
-      if (mapRef.current) {
+      if (mapInstance) {
         try {
-          mapRef.current.off();
-          mapRef.current.remove();
+          mapInstance.off();
+          mapInstance.remove();
         } catch (e) {
           // Ignorar errores de limpieza
         }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wifi, WifiOff, RefreshCw, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { WifiOff, RefreshCw, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 
 const WhatsAppStatus = () => {
   const [status, setStatus] = useState(null);

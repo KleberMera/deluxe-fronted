@@ -13,7 +13,6 @@ export default function SorteoPage() {
   const [rotation, setRotation] = useState(0);
   const [currentHighlight, setCurrentHighlight] = useState('');
   const spinDuration = 5000; // 5 seconds
-  const spinRef = useRef(null);
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false);
   const [winners, setWinners] = useState([]); // Lista de ganadores
   const [showHistory, setShowHistory] = useState(true); // Mostrar el historial por defecto
@@ -330,15 +329,7 @@ export default function SorteoPage() {
     setCurrentHighlight(allParticipants[currentIndex]?.nombre || '');
   };
   
-  // Get the browser's history object properly
-  const browserHistory = window.history;
-
   // Para no mostrar nombres largos en la ruleta
-  // Verificar si un participante ya ha ganado
-  const hasWon = (participant) => {
-    return winners.some(winner => winner.cedula === participant.cedula);
-  };
-
   const shortenName = (name) => {
     if (!name) return '';
     if (name.length > 15) {
