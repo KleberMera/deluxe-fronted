@@ -420,7 +420,7 @@ export default function SorteoPage() {
         <div className="absolute top-4 right-4">
           <button
             onClick={toggleFullscreen}
-            className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+            className="p-2 bg-purple-500/30 backdrop-blur-md rounded-full hover:bg-purple-500/50 transition-colors border border-purple-300/40"
             title="Salir de pantalla completa"
           >
             <FullscreenExit />
@@ -428,7 +428,16 @@ export default function SorteoPage() {
         </div>
         
         <div className="flex flex-col items-center justify-center flex-grow w-full max-w-4xl px-4">
-          <h1 className="text-5xl font-bold text-white mb-8">Ruleta de la Suerte</h1>
+          {/* <h1 
+            className="text-5xl font-black text-white mb-8 drop-shadow-lg"
+            style={{
+              fontFamily: "'Doctor Glitch', sans-serif",
+              textShadow: '3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.3)',
+              letterSpacing: '2px'
+            }}
+          >
+            RULETA DE LA SUERTE
+          </h1> */}
           
           <div className="w-full max-w-2xl relative">
             <div className="p-6 mb-6">
@@ -553,28 +562,40 @@ export default function SorteoPage() {
   // Vista normal
   return (
     <div 
-      className="bg-white bg-opacity-90 py-8 px-4"
+      className="py-8 px-4 relative overflow-hidden"
       style={{
-        backgroundImage: "url('/assets/img/celeste.jpg')",
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "center center",
-        backgroundSize: "cover",
+        background: 'linear-gradient(135deg, #1a0033 0%, #2d1b69 50%, #0f0a2e 100%)',
         minHeight: "83.65vh"
       }}
       ref={containerRef}
     >
-      <div className="max-w-6xl mx-auto">
+      {/* Efecto de fondo animado */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl"></div>
+      </div>
+      
+      <div className="max-w-6xl mx-auto relative z-10">
         <div className="mb-8 text-center">
           <div className="flex justify-between items-center mb-4">
             <div className="w-1/3"></div>
             <div className="w-1/3">
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">Sorteo de Premios</h1>
-              <p className="text-gray-600">¡Gira la ruleta y descubre al ganador!</p>
+              <h1 
+                className="text-4xl font-black text-white mb-2 drop-shadow-lg"
+                style={{
+                  fontFamily: "'Doctor Glitch', sans-serif",
+                  textShadow: '3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.3)',
+                  letterSpacing: '2px'
+                }}
+              >
+                SORTEO DE PREMIOS
+              </h1>
+              <p className="text-pink-100">¡Gira la ruleta y descubre al ganador!</p>
             </div>
             <div className="w-1/3 flex justify-end">
               <button
                 onClick={toggleFullscreen}
-                className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-2"
+                className="p-2 bg-purple-500/30 backdrop-blur-md text-pink-100 rounded-lg hover:bg-purple-500/50 transition-colors flex items-center gap-2 border border-purple-300/40"
                 title="Ver en pantalla completa"
               >
                 <Fullscreen />
@@ -583,7 +604,7 @@ export default function SorteoPage() {
             </div>
           </div>
           
-          <div className="bg-white/90 p-4 rounded-lg shadow-md mb-6">
+          <div className="bg-white/95 backdrop-blur-md p-4 rounded-lg shadow-lg mb-6 border border-white/40">
             <h3 className="text-lg font-medium text-gray-800 mb-4">Filtros de Búsqueda</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -593,7 +614,7 @@ export default function SorteoPage() {
                 <select
                   value={selectedTipoRegistrador}
                   onChange={handleTipoRegistradorChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   required
                 >
                   <option value="" disabled>Seleccione un tipo</option>
@@ -614,7 +635,7 @@ export default function SorteoPage() {
                   value={fechaInicio}
                   onChange={handleFechaInicioChange}
                   max={fechaFin}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 />
               </div>
               
@@ -629,11 +650,11 @@ export default function SorteoPage() {
                     onChange={handleFechaFinChange}
                     min={fechaInicio}
                     max={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   />
                   <button
                     onClick={aplicarFiltro}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 whitespace-nowrap"
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-md hover:scale-105 transform transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 whitespace-nowrap shadow-lg font-semibold"
                     disabled={loading}
                   >
                     {loading ? 'Cargando...' : 'Aplicar Filtros'}
@@ -643,7 +664,7 @@ export default function SorteoPage() {
             </div>
             
             {selectedTipoRegistrador && registradores.length > 0 && (
-              <div className="mt-2 text-sm text-gray-600">
+              <div className="mt-2 text-sm text-gray-700">
                 {registradores.find(t => t.id.toString() === selectedTipoRegistrador)?.descripcion}
               </div>
             )}
@@ -652,8 +673,8 @@ export default function SorteoPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Lista de Participantes */}
-          <div className="bg-white/90 p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-bold mb-4 text-blue-700 border-b pb-2">
+          <div className="bg-white/95 backdrop-blur-md p-6 rounded-lg shadow-lg border border-white/40">
+            <h2 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 border-b pb-2">
               Participantes ({participants.length})
             </h2>
             {loading ? (
@@ -664,7 +685,7 @@ export default function SorteoPage() {
                 {winners.length > 0 && (
                   <button
                     onClick={resetWinners}
-                    className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    className="px-4 py-2 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-all"
                   >
                     Reiniciar lista de ganadores
                   </button>
@@ -687,8 +708,8 @@ export default function SorteoPage() {
 
           {/* Ruleta */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white/90 text-gray-800 p-5 rounded-lg shadow-md flex flex-col items-center relative">
-              <h2 className="text-xl font-bold mb-4 text-blue-700">Ruleta de la Suerte</h2>
+            <div className="bg-white/95 backdrop-blur-md text-gray-800 p-5 rounded-lg shadow-lg border border-white/40 flex flex-col items-center relative">
+              <h2 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Ruleta de la Suerte</h2>
 
               {participants.length > 0 && (
                 <div className="relative w-full max-w-md aspect-square">
@@ -768,7 +789,7 @@ export default function SorteoPage() {
                   className={`px-6 py-3 rounded-full text-lg font-bold shadow-lg transform hover:scale-105 transition-all ${
                     spinning || participants.length === 0
                       ? "bg-gray-400/50 backdrop-blur-sm cursor-not-allowed"
-                      : "bg-gradient-to-r from-green-500/80 to-emerald-600/80 backdrop-blur-sm text-white hover:from-green-500 hover:to-emerald-600"
+                      : "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white"
                   }`}
                 >
                   {spinning ? "Girando..." : "¡Girar Ruleta!"}
@@ -777,15 +798,15 @@ export default function SorteoPage() {
             </div>
 
             {/* Ganador */}
-            <div className="bg-white/90 text-gray-800 p-5 rounded-lg shadow-md">
-              <h2 className="text-xl font-bold mb-3 text-blue-700 border-b pb-2">
+            <div className="bg-white/95 backdrop-blur-md text-gray-800 p-5 rounded-lg shadow-lg border border-white/40">
+              <h2 className="text-xl font-bold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 border-b pb-2">
                 Resultado del Sorteo
               </h2>
 
               {showWinnerAnimation && winner && (
                 <div className="text-center py-6 animate-pulse">
-                  <div className="text-2xl font-bold mb-2">🏆 ¡Tenemos un ganador! 🏆</div>
-                  <div className="text-3xl font-bold text-yellow-600 mb-3">{winner.nombre}</div>
+                  <div className="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">🏆 ¡Tenemos un ganador! 🏆</div>
+                  <div className="text-3xl font-bold text-pink-600 mb-3">{winner.nombre}</div>
                   <div className="text-lg">
                     <span className="font-medium">Cédula:</span> {winner.cedula}
                     {winner.celular && (
@@ -799,12 +820,12 @@ export default function SorteoPage() {
             </div>
 
             {/* Sección de Historial de Ganadores */}
-            <div className="bg-white/90 p-6 rounded-lg shadow-md">
+            <div className="bg-white/95 backdrop-blur-md p-6 rounded-lg shadow-lg border border-white/40">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-blue-700">Historial de Ganadores</h2>
+                <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Historial de Ganadores</h2>
                 <button 
                   onClick={() => setShowHistory(!showHistory)}
-                  className="text-blue-600 hover:text-blue-800 flex items-center">
+                  className="text-purple-600 hover:text-purple-800 flex items-center transition-colors">
                   {showHistory ? (
                     <>
                       <span>Ocultar</span>
@@ -824,39 +845,39 @@ export default function SorteoPage() {
               </div>
               
               {showHistory && (
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="border border-purple-200 rounded-lg overflow-hidden">
                   {history.length > 0 ? (
                     <div className="max-h-80 overflow-y-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                      <table className="min-w-full divide-y divide-purple-200">
+                        <thead className="bg-purple-50/50">
                           <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
                               Fecha y Hora
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
                               Ganador
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
                               Cédula
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
                               Teléfono
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-white divide-y divide-purple-200">
                           {history.map((item) => (
-                            <tr key={item.id} className={history.indexOf(item) % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                            <tr key={item.id} className={history.indexOf(item) % 2 === 0 ? 'bg-white' : 'bg-purple-50/30'}>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {formatDate(item.date)}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                 {item.winner.nombre}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                 {item.winner.cedula}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                 {item.winner.celular || 'N/A'}
                               </td>
                             </tr>
