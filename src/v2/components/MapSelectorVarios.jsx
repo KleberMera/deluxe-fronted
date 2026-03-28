@@ -164,6 +164,7 @@ const MapSelectorSorteoVarios = ({ onLocationSelect, initialLocation, tempLocati
   }, [tempLocation]);
 
   // Obtener ubicación del usuario al cargar el componente
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Solo intentar obtener ubicación si no hay una ubicación inicial
     if (!initialLocation) {
@@ -171,6 +172,7 @@ const MapSelectorSorteoVarios = ({ onLocationSelect, initialLocation, tempLocati
     } else {
       setLoadingLocation(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialLocation]);
 
   const getCurrentLocation = () => {
@@ -247,15 +249,6 @@ const MapSelectorSorteoVarios = ({ onLocationSelect, initialLocation, tempLocati
       if (mapRef.current) {
         mapRef.current.flyTo([userLocation.lat, userLocation.lng], 15);
       }
-    } else {
-      getCurrentLocation();
-    }
-  };
-
-  // Función para centrar el mapa en la ubicación del usuario
-  const centerOnUserLocation = () => {
-    if (userLocation && mapRef.current) {
-      mapRef.current.flyTo([userLocation.lat, userLocation.lng], 15);
     } else {
       getCurrentLocation();
     }

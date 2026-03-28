@@ -7,10 +7,8 @@ import {
   faTable, 
   faChartPie, 
   faSearch, 
-  faChartLine, 
   faMapMarkerAlt, 
   faHome, 
-  faInbox,
   faTimes,
   faBars,
   faTrophy,
@@ -42,7 +40,6 @@ const DashboardAdmin = () => {
     por_canton: [],
     por_barrio: []
   });
-  const [recentData, setRecentData] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
   const [searchParams, setSearchParams] = useState({
@@ -158,7 +155,6 @@ const DashboardAdmin = () => {
       
       try {
         const data = await fetchRecentData();
-        setRecentData(data);
       } catch (error) {
         console.error('Error cargando datos recientes:', error);
         setError('Error al cargar datos recientes del servidor');
@@ -318,13 +314,13 @@ const DashboardAdmin = () => {
           
           {/* Menú */}
           <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-            <a 
-              href="#" 
+            <button 
+              onClick={() => setShowModal(false)}
               className="flex items-center space-x-3 p-3 rounded-lg bg-indigo-800 text-white hover:bg-indigo-600 transition-colors"
             >
               <FontAwesomeIcon icon={faHome} />
               <span>Dashboard</span>
-            </a>
+            </button>
             
             <a 
               href="https://sorteos.bingoamigo.net" 
@@ -339,13 +335,13 @@ const DashboardAdmin = () => {
           
           {/* Footer del sidebar */}
           <div className="p-4 border-t border-indigo-600">
-            <a 
-              href="#" 
+            <button 
+              onClick={() => {}}
               className="flex items-center space-x-3 p-3 rounded-lg text-white hover:bg-indigo-600 transition-colors"
             >
               <FontAwesomeIcon icon={faSignOutAlt} />
               <span>Cerrar sesión</span>
-            </a>
+            </button>
           </div>
         </div>
       </div>
