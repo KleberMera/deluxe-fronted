@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { HelpCircle, X, Code, CheckCircle, AlertCircle, Users, Phone, CreditCard } from 'lucide-react';
 
 const InstruccionesReenvio = ({ isOpen, onClose }) => {

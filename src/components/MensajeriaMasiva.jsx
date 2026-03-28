@@ -126,7 +126,6 @@ const MensajeriaMasiva = () => {
   const [showCampaignDetails, setShowCampaignDetails] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [campaignDetails, setCampaignDetails] = useState(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
 
   // Configuración de URL - cambiar para desarrollo/producción
   const BASE_URL =  'https://restdeluxe.bingoamigo.net';
@@ -318,7 +317,6 @@ const MensajeriaMasiva = () => {
 
   // Función para obtener detalles de campaña específica
   const getCampaignDetails = async (campaignId) => {
-    setLoadingDetails(true);
     try {
       const response = await fetch(`${BASE_URL}/api/bulk-messaging/campaigns/${campaignId}/details`, {
         method: 'GET',
@@ -336,8 +334,6 @@ const MensajeriaMasiva = () => {
     } catch (err) {
       showError('Error de conexión al obtener detalles de campaña');
       console.error('Get campaign details error:', err);
-    } finally {
-      setLoadingDetails(false);
     }
   };
 

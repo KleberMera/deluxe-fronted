@@ -93,9 +93,10 @@ const LocationMarker = ({ onLocationSelect, initialLocation, userLocation, selec
 
   // Cleanup function para manejar correctamente la limpieza de marcadores
   useEffect(() => {
+    const markerRefsSnapshot = markerRefs.current;
     return () => {
       // Limpiar referencias de marcadores
-      Object.values(markerRefs.current).forEach(ref => {
+      Object.values(markerRefsSnapshot).forEach(ref => {
         if (ref && ref.current) {
           try {
             ref.current.remove();
@@ -170,6 +171,7 @@ const MapSelector = ({ onLocationSelect, initialLocation, tempLocation }) => {
     } else {
       setLoadingLocation(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getCurrentLocation = () => {
@@ -251,15 +253,6 @@ const MapSelector = ({ onLocationSelect, initialLocation, tempLocation }) => {
     }
   };
 
-  // Función para centrar el mapa en la ubicación del usuario
-  const centerOnUserLocation = () => {
-    if (userLocation && mapRef.current) {
-      mapRef.current.flyTo([userLocation.lat, userLocation.lng], 15);
-    } else {
-      getCurrentLocation();
-    }
-  };
-
   useEffect(() => {
     // Retrasar la inicialización para asegurar que el modal esté completamente renderizado
     const timer = setTimeout(() => {
@@ -288,11 +281,12 @@ const MapSelector = ({ onLocationSelect, initialLocation, tempLocation }) => {
 
   // Cleanup al desmontar el componente
   useEffect(() => {
+    const mapInstance = mapRef.current;
     return () => {
-      if (mapRef.current) {
+      if (mapInstance) {
         try {
-          mapRef.current.off();
-          mapRef.current.remove();
+          mapInstance.off();
+          mapInstance.remove();
         } catch (e) {
           // Ignorar errores de limpieza
         }
