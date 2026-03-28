@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, Send, Filter, Eye, Play, Square, BarChart3, 
-  MapPin, Calendar, MessageCircle, AlertCircle, CheckCircle,
-  RefreshCw, Clock, X, Plus, Trash2, Settings, Activity,
-  Image, Upload, FileImage, FileText, Download, ExternalLink
+  MessageCircle, AlertCircle, CheckCircle,
+  RefreshCw, Clock, X, Plus, Trash2, Activity,
+  Image, Upload, FileImage, FileText, Download
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
@@ -33,15 +33,6 @@ const MensajeriaMasiva = () => {
       title: 'Error',
       text: message,
       confirmButtonColor: '#ef4444'
-    });
-  };
-
-  const showInfo = (message) => {
-    Swal.fire({
-      icon: 'info',
-      title: 'Información',
-      text: message,
-      confirmButtonColor: '#3b82f6'
     });
   };
 
@@ -149,6 +140,7 @@ const MensajeriaMasiva = () => {
   };
 
   // Cargar provincias al montar el componente
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadProvinces();
     loadCampaigns();
@@ -623,20 +615,6 @@ const MensajeriaMasiva = () => {
       showError('Error al exportar datos a Excel');
       console.error('Export to Excel error:', err);
     }
-  };
-
-  // Función para resetear el formulario
-  const resetForm = () => {
-    setCampaignData({ name: '', message: '', intervalMinutes: 2, maxMessagesPerHour: 30 });
-    setFilters({ provinciaId: '', cantonId: '', barrioIds: [], registrationDateFrom: '', registrationDateTo: '' });
-    setPreview(null);
-    setShowPreview(false);
-    setExcludedUsers([]);
-    setCurrentPage(1); // Resetear página
-    setError(null);
-    setSuccess(null);
-    // Limpiar imagen
-    removeImage();
   };
 
   const createCampaign = async () => {

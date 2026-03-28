@@ -317,6 +317,7 @@ const ManualRegisterPage = () => {
     }
   });
 
+// eslint-disable-next-line react-hooks/exhaustive-deps
 useEffect(() => {
   if (formik.values.tableStart) {
     const start = parseInt(formik.values.tableStart);
@@ -330,10 +331,6 @@ useEffect(() => {
       });
     }
   }
-}, [formik.values.tableStart]);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
     const fetchProvincias = async () => {
       try {
         const response = await axios.get(`${API_URL}/locationNew/provincias`);
@@ -346,7 +343,6 @@ useEffect(() => {
     fetchProvincias();
   }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const fetchCantones = async () => {
       if (formik.values.provinciaId) {
