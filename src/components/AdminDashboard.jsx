@@ -99,6 +99,7 @@ const Dashboard = () => {
     }
   }, [activeTab]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selectedBrigada) {
       const brigadaId = parseInt(selectedBrigada);
@@ -142,7 +143,6 @@ const Dashboard = () => {
     
     for (let i = 5; i >= 0; i--) {
       const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-      const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
       const nombreMes = fecha.toLocaleDateString('es-ES', { month: 'long' });
       
       const registros = dataSource.usuarios.filter(u => {
