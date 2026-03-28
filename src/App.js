@@ -1,11 +1,8 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import RegisterPage from './components/RegisterPage';
-import UsersMapPage from './components/MapaCalor'; // Asegúrate de tener este archivo
 import MaintenancePage from './components/RegisterPage';
 import ManualRegisterPage from './components/RegistroManual';
 import Dashboard from './components/AdminDashboard';
-import ManualRegisterUserPage from './components/RegistroManualUsuarios';
 import DashboardAdmin from './components/TablasDashboard';
 import ManualRegistroVarios from './v2/components/RegistroManualVarios';
 import DashboardVarios from './v2/components/AdminDashboardVarios';
