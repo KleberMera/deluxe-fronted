@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import MaintenancePage from './components/RegisterPage';
+
 import ManualRegisterPage from './components/RegistroManual';
 import Dashboard from './components/AdminDashboard';
 import DashboardAdmin from './components/TablasDashboard';
@@ -8,15 +8,6 @@ import ManualRegistroVarios from './v2/components/RegistroManualVarios';
 import DashboardVarios from './v2/components/AdminDashboardVarios';
 import SorteoPage from './v2/components/SorteoPage';
 import LinkAccesos from './v2/components/LinkAccesos';
-
-
-function Home() {
-  return (
-    <div className="App relative">
-      <MaintenancePage />
-    </div>
-  );
-}
 
 function App() {
   useEffect(() => {

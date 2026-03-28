@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, BarChart3, Activity, Database, UserCheck, Calendar, Trophy, Award, Filter, X, ChevronDown, Send, RefreshCw, MessageCircle } from 'lucide-react';
+import { Users, BarChart3, Activity, Database, UserCheck, Calendar, Trophy, X, ChevronDown, Send, RefreshCw, MessageCircle } from 'lucide-react';
 import ReenvioTablas from './ReenvioTablas';
 import MensajeriaMasiva from './MensajeriaMasiva';
 
@@ -111,7 +111,7 @@ const Dashboard = () => {
     } else {
       setFilteredData(null);
     }
-  }, [selectedBrigada, data]);
+  }, [selectedBrigada, data.registradores, data.usuarios, data.brigadas, data.lastFetched]);
 
   // Calcular métricas CORREGIDAS
   const calculateMetrics = (dataSource) => {
