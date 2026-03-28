@@ -154,7 +154,7 @@ const DashboardAdmin = () => {
       setError(null);
       
       try {
-        const data = await fetchRecentData();
+        await fetchRecentData();
       } catch (error) {
         console.error('Error cargando datos recientes:', error);
         setError('Error al cargar datos recientes del servidor');

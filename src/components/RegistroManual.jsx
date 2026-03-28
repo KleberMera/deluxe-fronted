@@ -330,9 +330,9 @@ useEffect(() => {
       });
     }
   }
-// eslint-disable-next-line react-hooks/exhaustive-deps
 }, [formik.values.tableStart]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const fetchProvincias = async () => {
       try {
@@ -363,9 +363,9 @@ useEffect(() => {
       }
     };
     fetchCantones();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formik.values.provinciaId]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const fetchBarrios = async () => {
       if (formik.values.cantonId) {
@@ -380,7 +380,6 @@ useEffect(() => {
       }
     };
     fetchBarrios();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formik.values.cantonId]);
 
   const handleLocationSelect = (lat, lng) => {
