@@ -413,18 +413,30 @@ const ManualRegistroVarios = () => {
 
   const renderStepIndicator = () => {
     return (
-      <div className="flex justify-center mb-4 md:mb-6">
+      <div className="flex justify-center mb-6 md:mb-8 gap-2">
         {[1, 2, 3, 4].map((step) => (
           <React.Fragment key={step}>
             <div
-              className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center ${
-                currentStep >= step ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-              } font-semibold text-sm md:text-base`}
+              className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-sm md:text-base transition-all duration-300 transform ${
+                currentStep >= step 
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg scale-110' 
+                  : 'bg-gray-200 text-gray-600'
+              }`}
             >
-              {step}
+              {currentStep > step ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                step
+              )}
             </div>
             {step < 4 && (
-              <div className={`w-8 md:w-12 h-1 flex items-center ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+              <div className={`w-6 md:w-10 h-1 md:h-1.5 rounded-full transition-all duration-300 ${
+                currentStep > step 
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600' 
+                  : 'bg-gray-200'
+              }`}></div>
             )}
           </React.Fragment>
         ))}
@@ -436,8 +448,10 @@ const ManualRegistroVarios = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-3 md:space-y-4">
-            <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Seleccionar Registrador</h2>
+          <div className="space-y-4 md:space-y-5">
+            <h2 className="text-2xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+              👤 Selecciona tu Registrador
+            </h2>
             
             <div className="grid grid-cols-1 gap-3">
               <div>
@@ -486,7 +500,7 @@ const ManualRegistroVarios = () => {
               <button
                 type="button"
                 onClick={nextStep}
-                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 flex items-center text-sm"
               >
                 Siguiente
                 <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -499,8 +513,10 @@ const ManualRegistroVarios = () => {
 
       case 2:
         return (
-          <div className="space-y-3 md:space-y-4">
-            <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Información Personal</h2>            
+          <div className="space-y-4 md:space-y-5">
+            <h2 className="text-2xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+              📝 Información Personal
+            </h2>            
             <div className="grid grid-cols-1 gap-3">
               <div className="relative">
                 <label htmlFor="idCard" className="block text-gray-700 font-medium mb-1">Cédula</label>
@@ -616,11 +632,11 @@ const ManualRegistroVarios = () => {
               </div>
             </div>
             
-            <div className="flex justify-between pt-4">
+            <div className="flex justify-between pt-4 gap-3">
               <button
                 type="button"
                 onClick={prevStep}
-                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 flex items-center text-sm"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
@@ -630,7 +646,7 @@ const ManualRegistroVarios = () => {
               <button
                 type="button"
                 onClick={nextStep}
-                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 flex items-center text-sm"
               >
                 Siguiente
                 <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -643,8 +659,10 @@ const ManualRegistroVarios = () => {
 
       case 3:
         return (
-          <div className="space-y-3 md:space-y-4">
-            <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Ubicación Geográfica</h2>
+          <div className="space-y-4 md:space-y-5">
+            <h2 className="text-2xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+              📍 Ubicación Geográfica
+            </h2>
             
             <div className="grid grid-cols-1 gap-3">
               <div>
@@ -758,11 +776,11 @@ const ManualRegistroVarios = () => {
               </div>
             </div>
             
-            <div className="flex justify-between pt-4">
+            <div className="flex justify-between pt-4 gap-3">
               <button
                 type="button"
                 onClick={prevStep}
-                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 flex items-center text-sm"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
@@ -772,7 +790,7 @@ const ManualRegistroVarios = () => {
               <button
                 type="button"
                 onClick={nextStep}
-                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 flex items-center text-sm"
               >
                 Siguiente
                 <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -785,8 +803,10 @@ const ManualRegistroVarios = () => {
 
       case 4:
         return (
-          <div className="space-y-3 md:space-y-4">
-            {/* <h2 className="text-lg font-semibold text-blue-600 mb-3 md:mb-4">Revisar Información</h2> */}
+          <div className="space-y-4 md:space-y-5">
+            <h2 className="text-2xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4\">
+              ✅ Verifica tus Datos
+            </h2>
 
             {/* Resumen completo del registro */}
             <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200">
@@ -856,11 +876,11 @@ const ManualRegistroVarios = () => {
               </div>
             </div>
             
-            <div className="flex justify-between pt-4">
+            <div className="flex justify-between pt-6 gap-3">
               <button
                 type="button"
                 onClick={prevStep}
-                className="bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 flex items-center text-sm"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
@@ -870,7 +890,7 @@ const ManualRegistroVarios = () => {
               <button
                 type="button"
                 onClick={handleFinalSubmit}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center text-sm"
+                className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 flex items-center text-sm"
                 disabled={loading}
               >
                 {loading ? (
@@ -883,10 +903,10 @@ const ManualRegistroVarios = () => {
                   </span>
                 ) : (
                   <span className="flex items-center">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
-                    REGISTRAR USUARIO
+                    ¡REGISTRAR USUARIO!
                   </span>
                 )}
               </button>
@@ -903,49 +923,58 @@ const ManualRegistroVarios = () => {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-2 md:p-4 relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-zinc-900"
+      className="min-h-screen flex items-center justify-center p-2 md:p-4 relative overflow-hidden"
+      style={{
+        background: 'linear-gradient(135deg, #1a0033 0%, #2d1b69 50%, #0f0a2e 100%)'
+      }}
     >
-      <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+      {/* Efecto de fondo animado */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl"></div>
+      </div>
       
       <ToastContainer position="top-center" autoClose={3000} />
       
-      <div className="w-full max-w-md mx-2 relative z-10">
-        {/* Logo más pequeño y centrado */}
-        <div className="flex justify-center mb-4">
-          {/* <img 
-            src="/assets/img/pelicano_letras_blanca.png" 
-            alt="Pelican TV" 
-            className="h-10 md:h-14 object-contain"
-          /> */}
-        </div>
-        
-        {/* Formulario */}
-        <div className="bg-white bg-opacity-90 rounded-xl shadow-2xl overflow-hidden border-2 md:border-4 border-white">
-          {/* Header con título y fuente personalizada */}
-          <div className="bg-blue-600 p-2 md:p-3 text-center">
+      <div className="w-full max-w-2xl mx-2 relative z-10">
+        {/* Formulario Principal */}
+        <div className="bg-gradient-to-br from-white/95 to-gray-50/95 rounded-2xl shadow-2xl overflow-hidden border-4 border-purple-900/30 backdrop-blur-sm">
+          {/* Header Atractivo */}
+          <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-purple-700 p-4 md:p-6 text-center relative overflow-hidden">
+            {/* Decoración de fondo */}
+            <div className="absolute top-0 left-0 w-full h-full opacity-10">
+              <div className="absolute top-2 left-4 text-4xl">✨</div>
+              <div className="absolute bottom-2 right-4 text-4xl">💎</div>
+            </div>
+            
             <h1 
-              className="text-xl md:text-2xl font-bold text-white"
-              style={{ fontFamily: "'Doctor Glitch', sans-serif", textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)' }}
+              className="text-3xl md:text-4xl font-black text-white mb-4 drop-shadow-lg"
+              style={{ 
+                fontFamily: "'Doctor Glitch', sans-serif", 
+                textShadow: '3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.3)',
+                letterSpacing: '2px'
+              }}
             >
               REGISTRO DE USUARIOS
             </h1>
+            
+            {/* Info del Registrador */}
             {formik.values.id_registrador && (
-              <div className="mt-2 bg-gradient-to-r from-slate-600/90 to-zinc-700/90 rounded-lg px-3 py-2 border border-slate-500/50 shadow-lg">
-                <p 
-                  className="text-sm md:text-base text-blue-100 font-bold tracking-wide drop-shadow-lg"
-                  style={{ 
-                    fontFamily: "'Doctor Glitch', sans-serif", 
-                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.7)',
-                    letterSpacing: '0.8px'
-                  }}
-                >
-                  🎖️ {registradores.find(r => String(r.id) === String(formik.values.id_registrador))?.nombre_tipo || ''}
-                </p>
+              <div className="space-y-2">
+                <div className="bg-white/20 backdrop-blur-md rounded-lg px-3 py-2 border border-white/40">
+                  <p 
+                    className="text-white font-black text-lg drop-shadow-lg"
+                    style={{ letterSpacing: '1px' }}
+                  >
+                    {registradores.find(r => String(r.id) === String(formik.values.id_registrador))?.nombre_tipo || ''}
+                  </p>
+                </div>
               </div>
             )}
           </div>
           
-          <div className="p-3 md:p-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+          {/* Contenido Principal */}
+          <div className="p-4 md:p-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
             {renderStepIndicator()}
             {renderStepContent()}
           </div>
