@@ -437,7 +437,7 @@ export default function SorteoPage() {
         </div>
         
         <div className="flex flex-col items-center justify-center flex-grow w-full max-w-4xl px-4">
-          <h1 className="text-4xl font-bold text-gray-800 mb-8">Ruleta de la Suerte</h1>
+          <h1 className="text-5xl font-bold text-white mb-8">Ruleta de la Suerte</h1>
           
           <div className="w-full max-w-2xl relative">
             <div className="p-6 mb-6">
