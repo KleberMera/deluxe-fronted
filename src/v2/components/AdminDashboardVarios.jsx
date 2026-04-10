@@ -234,7 +234,9 @@ const DashboardVarios = () => {
           usuarios_hoy: r.total_hoy || 0,
           usuarios_semana: 0,
           tipo: tipoObj?.tipo || '' ,
-          brigada_nombre: brig?.nombre_brigada || ''
+          brigada_nombre: brig?.nombre_brigada || '',
+          hora_ultimo_registro: r.hora_ultimo_registro || '-',
+          tiempo_inactividad: r.tiempo_inactividad || '-'
         }));
       } else {
         // Todos los tipos de la brigada: aplanar todos los registradores
@@ -245,7 +247,9 @@ const DashboardVarios = () => {
           usuarios_hoy: r.total_hoy || 0,
           usuarios_semana: 0,
           tipo: tipoObj.tipo,
-          brigada_nombre: brig?.nombre_brigada || ''
+          brigada_nombre: brig?.nombre_brigada || '',
+          hora_ultimo_registro: r.hora_ultimo_registro || '-',
+          tiempo_inactividad: r.tiempo_inactividad || '-'
         })));
 
         // Si no hay tipos pero la brigada tiene totales, mostrar la brigada como entrada
@@ -273,7 +277,9 @@ const DashboardVarios = () => {
             usuarios_hoy: r.total_hoy || 0,
             usuarios_semana: 0,
             tipo: tipoObj.tipo,
-            brigada_nombre: brig.nombre_brigada
+            brigada_nombre: brig.nombre_brigada,
+            hora_ultimo_registro: r.hora_ultimo_registro || '-',
+            tiempo_inactividad: r.tiempo_inactividad || '-'
           })));
         }
         return [{
@@ -283,7 +289,9 @@ const DashboardVarios = () => {
           usuarios_hoy: brig.total_hoy || 0,
           usuarios_semana: 0,
           tipo: 'Brigada',
-          brigada_nombre: brig.nombre_brigada
+          brigada_nombre: brig.nombre_brigada,
+          hora_ultimo_registro: '-',
+          tiempo_inactividad: '-'
         }];
       });
       // Si no hay brigada seleccionada, excluir entradas que representen la brigada en sí (tipo 'Brigada')
@@ -379,8 +387,14 @@ const DashboardVarios = () => {
                       <span className="text-sm text-gray-600">
                         📅 Hoy: <span className="font-semibold text-green-600">{registrador.usuarios_hoy}</span>
                       </span>
-                      <span className="text-sm text-gray-600">
+                      {/* <span className="text-sm text-gray-600">
                         🗓️ Semana: <span className="font-semibold text-blue-600">{registrador.usuarios_semana}</span>
+                      </span> */}
+                      <span className="text-sm text-gray-600">
+                        🕐 Último registro: <span className="font-semibold text-purple-600">{registrador.hora_ultimo_registro}</span>
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        ⏱️ Inactividad: <span className="font-semibold text-red-600">{registrador.tiempo_inactividad?.replace(/^hace\s+/, '') || '-'}</span>
                       </span>
                     </div>
                   </div>
