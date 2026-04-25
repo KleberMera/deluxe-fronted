@@ -18,6 +18,18 @@ const DashboardVarios = () => {
   const [userSelectedBrigada, setUserSelectedBrigada] = useState(false); // evita sobreescribir la selección del usuario
   const [isResending] = useState(false); // Estado para controlar actualizaciones durante reenvío (no usado por ahora)
   const [registradorTipo, setRegistradorTipo] = useState('all'); // filtro por tipo de registrador cuando hay brigada seleccionada
+  const [registradorTipoSeccion, setRegistradorTipoSeccion] = useState('all'); // filtro local solo para la sección de registradores
+
+  const tiposDisponibles = (() => {
+    if (!selectedBrigada) return [];
+    const brigadaId = parseInt(selectedBrigada, 10);
+    const brigada = (data.total_por_tipo_registro_por_brigada || []).find(b => b.id_brigada === brigadaId);
+    return (brigada?.total_por_tipo || [])
+      .map(t => t.tipo)
+      .filter(Boolean);
+  })();
+
+  const tipoSeleccionadoLabel = registradorTipo !== 'all' ? registradorTipo : '';
 
   // Función para obtener los datos de la API
   const fetchMetrics = async () => {
@@ -103,16 +115,21 @@ const DashboardVarios = () => {
     if (selectedBrigada) {
       const brigadaId = parseInt(selectedBrigada);
 
-  const brigadas = (data.brigadas || []).filter(b => b.id_brigada === brigadaId);
-  const brig = brigadas[0] || null;
+      const brigadas = (data.brigadas || []).filter(b => b.id_brigada === brigadaId);
+      const brig = brigadas[0] || null;
 
       // Buscar en total_por_tipo_registro_por_brigada los registradores reales
       const tpList = data.total_por_tipo_registro_por_brigada || [];
       const tp = tpList.find(b => b.id_brigada === brigadaId);
 
       const registradores = [];
+      const hasTipoBreakdown = tp && Array.isArray(tp.total_por_tipo) && tp.total_por_tipo.length > 0;
       if (tp && Array.isArray(tp.total_por_tipo)) {
-        tp.total_por_tipo.forEach(tipoObj => {
+        const tiposFiltrados = registradorTipo !== 'all'
+          ? tp.total_por_tipo.filter(tipoObj => tipoObj.tipo === registradorTipo)
+          : tp.total_por_tipo;
+
+        tiposFiltrados.forEach(tipoObj => {
           (tipoObj.registradores || []).forEach(r => {
             registradores.push({
               ...r,
@@ -127,11 +144,17 @@ const DashboardVarios = () => {
       const usuarios = [];
 
       // Construir overview específico para la brigada seleccionada
-      const total_registros = (brig && (brig.total_registros || brig.total_registros === 0)) ? (brig.total_registros || 0) : registradores.reduce((s, r) => s + (r.total || 0), 0);
-      const registradores_activos = registradores.length;
+      const total_registros = hasTipoBreakdown
+        ? registradores.reduce((s, r) => s + (r.total || 0), 0)
+        : (brig?.total_registros || 0);
+      const registradores_activos = hasTipoBreakdown
+        ? registradores.length
+        : (brig?.registradores_activos || registradores.length);
       const brigadas_activas = brig && brig.activa ? 1 : 0;
-  // Calcular total_hoy sumando total_hoy de cada registrador si está disponible
-  const total_hoy = registradores.reduce((s, r) => s + (r.total_hoy || 0), 0);
+      // Calcular total_hoy sumando total_hoy de cada registrador si está disponible
+      const total_hoy = hasTipoBreakdown
+        ? registradores.reduce((s, r) => s + (r.total_hoy || 0), 0)
+        : (brig?.total_hoy || 0);
 
       const overviewBrigada = {
         total_registros,
@@ -151,11 +174,12 @@ const DashboardVarios = () => {
     } else {
       setFilteredData(null);
     }
-  }, [selectedBrigada, data]);
+  }, [selectedBrigada, registradorTipo, data]);
 
   // Cuando cambia la brigada seleccionada, reiniciar el filtro de tipo de registrador
   useEffect(() => {
     setRegistradorTipo('all');
+    setRegistradorTipoSeccion('all');
   }, [selectedBrigada]);
 
   // Calcular métricas a partir de la respuesta normalizada
@@ -193,6 +217,9 @@ const DashboardVarios = () => {
   const currentData = filteredData || data;
   const metrics = calculateMetrics(currentData);
   const brigadaSeleccionada = selectedBrigada ? data.brigadas.find(b => b.id_brigada === parseInt(selectedBrigada)) : null;
+  const scopeLabel = tipoSeleccionadoLabel
+    ? `Tipo: ${tipoSeleccionadoLabel}`
+    : brigadaSeleccionada?.nombre_brigada || '';
 
   // Componente de tarjeta de métrica
   const MetricCard = ({ title, value, icon: Icon, color }) => (
@@ -200,7 +227,7 @@ const DashboardVarios = () => {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-white/90 text-sm font-medium">
-            {brigadaSeleccionada ? `${title} (${brigadaSeleccionada.nombre_brigada})` : title}
+            {scopeLabel ? `${title} (${scopeLabel})` : title}
           </p>
           <p className="text-3xl font-bold text-white mt-1">
             {typeof value === 'number' ? value.toLocaleString() : value}
@@ -220,13 +247,14 @@ const DashboardVarios = () => {
 
     // Construir lista de registradores dependiendo si hay brigada seleccionada y tipo seleccionado
     let allRegistradores = [];
+    const tipoFiltroRegistradores = registradorTipo !== 'all' ? registradorTipo : registradorTipoSeccion;
 
     if (selectedBrigada) {
       const brig = registrosPorBrigada.find(b => b.id_brigada === parseInt(selectedBrigada));
       const tipos = brig?.total_por_tipo || [];
 
-      if (registradorTipo && registradorTipo !== 'all') {
-        const tipoObj = tipos.find(t => t.tipo === registradorTipo);
+      if (tipoFiltroRegistradores && tipoFiltroRegistradores !== 'all') {
+        const tipoObj = tipos.find(t => t.tipo === tipoFiltroRegistradores);
         allRegistradores = (tipoObj?.registradores || []).map(r => ({
           registrador_id: r.id_registrador,
           nombre_registrador: r.nombre_registrador,
@@ -301,13 +329,6 @@ const DashboardVarios = () => {
     // Ordenar por total descendente
     allRegistradores.sort((a, b) => b.usuarios_count - a.usuarios_count);
 
-    // Obtener lista de tipos si hay una brigada seleccionada (para el filtro)
-    const tiposDisponibles = (() => {
-      if (!selectedBrigada) return [];
-      const brig = registrosPorBrigada.find(b => b.id_brigada === parseInt(selectedBrigada));
-      return (brig?.total_por_tipo || []).map(t => t.tipo);
-    })();
-
     return (
       <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 shadow-lg border border-gray-200">
         <div className="flex items-center justify-between mb-6">
@@ -316,7 +337,7 @@ const DashboardVarios = () => {
               <UserCheck className="text-white" size={24} />
             </div>
             {brigadaSeleccionada ? 'REGISTRADORES' : 'TODOS LOS REGISTRADORES'}
-            {brigadaSeleccionada && ` (${brigadaSeleccionada.nombre_brigada})`}
+            {/* {brigadaSeleccionada && ` (${brigadaSeleccionada.nombre_brigada})`} */}
           </h3>
           <div className="flex items-center space-x-4 flex-wrap">
             <div className="text-right w-full sm:w-auto">
@@ -324,46 +345,25 @@ const DashboardVarios = () => {
               <p className="text-xs text-gray-400"></p>
               {/* <p className="text-xs text-gray-400">Elementos generados desde totales por brigada</p> */}
             </div>
-            {selectedBrigada && (
-              <div className="hidden sm:flex items-center space-x-2 w-auto">
+            {selectedBrigada && registradorTipo === 'all' && tiposDisponibles.length > 0 && (
+              <div className="relative w-full sm:w-64">
                 <select
-                  value={registradorTipo}
-                  onChange={(e) => setRegistradorTipo(e.target.value)}
-                  className="appearance-none bg-white text-gray-800 border border-gray-300 rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 w-auto"
+                  value={registradorTipoSeccion}
+                  onChange={(e) => setRegistradorTipoSeccion(e.target.value)}
+                  className="appearance-none w-full bg-white text-gray-800 border border-gray-300 rounded-lg py-2 pl-4 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="all">Todos los tipos</option>
-                  {tiposDisponibles.map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                  {tiposDisponibles.map((tipo) => (
+                    <option key={tipo} value={tipo}>{tipo}</option>
                   ))}
                 </select>
-                {registradorTipo !== 'all' && (
-                  <button onClick={() => setRegistradorTipo('all')} className="text-sm text-blue-600 hover:underline">Limpiar tipo</button>
-                )}
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <ChevronDown size={16} />
+                </div>
               </div>
             )}
           </div>
         </div>
-        
-        {/* Selector visible sólo en móviles: aparece antes de la lista de registradores */}
-        {selectedBrigada && (
-          <div className="sm:hidden mb-3 px-0">
-            <div className="flex items-center space-x-2 w-full">
-              <select
-                value={registradorTipo}
-                onChange={(e) => setRegistradorTipo(e.target.value)}
-                className="appearance-none bg-white text-gray-800 border border-gray-300 rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 w-full"
-              >
-                <option value="all">Todos los tipos</option>
-                {tiposDisponibles.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-              {registradorTipo !== 'all' && (
-                <button onClick={() => setRegistradorTipo('all')} className="text-sm text-blue-600 hover:underline">Limpiar tipo</button>
-              )}
-            </div>
-          </div>
-        )}
 
         <div className="space-y-4">
           {allRegistradores.map((registrador, index) => (
@@ -492,6 +492,7 @@ const DashboardVarios = () => {
           </div>
           REGISTROS POR MES
           {brigadaSeleccionada && ` (${brigadaSeleccionada.nombre_brigada})`}
+          {tipoSeleccionadoLabel && ' (vista general)'}
         </h3>
         
         <div className="space-y-4">
@@ -586,7 +587,6 @@ const ExecutiveSummary = () => {
   );
 };
 
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
@@ -665,6 +665,24 @@ const ExecutiveSummary = () => {
                   <ChevronDown size={16} />
                 </div>
               </div>
+
+              {selectedBrigada && (
+                <div className="relative w-full sm:w-64">
+                  <select
+                    value={registradorTipo}
+                    onChange={(e) => setRegistradorTipo(e.target.value)}
+                    className="appearance-none w-full bg-white text-gray-800 border border-gray-300 rounded-lg py-2 pl-4 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">Todos los tipos</option>
+                    {tiposDisponibles.map((tipo) => (
+                      <option key={tipo} value={tipo}>{tipo}</option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                    <ChevronDown size={16} />
+                  </div>
+                </div>
+              )}
 
               {selectedBrigada && (
                 <button
