@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
-import { Fullscreen, FullscreenExit } from '@mui/icons-material';
+import { Fullscreen, FullscreenExit, CloudUpload } from '@mui/icons-material';
+import * as XLSX from 'xlsx';
 import environments from "../environments/environment";
 
 export default function SorteoPage() {
@@ -16,6 +17,9 @@ export default function SorteoPage() {
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false);
   const [winners, setWinners] = useState([]); // Lista de ganadores
   const [showHistory, setShowHistory] = useState(true); // Mostrar el historial por defecto
+  const [sourceMode, setSourceMode] = useState('filtros'); // 'filtros' o 'archivo'
+  const [excelFile, setExcelFile] = useState(null);
+  const fileInputRef = useRef(null);
   // Función para formatear la fecha a YYYY-MM-DD en la zona horaria local
   const formatLocalDate = (date) => {
     const year = date.getFullYear();
@@ -40,6 +44,78 @@ export default function SorteoPage() {
   const [loading, setLoading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef(null);
+
+  // Función para parsear archivo Excel
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(worksheet);
+
+        // Validar y mapear datos del Excel
+        const participantesDelArchivo = rows
+          .map((row, index) => {
+            // Buscar las columnas por nombre o posición
+            const nombre = row.nombre || row.Nombre || row.NOMBRE || '';
+            const cedula = row.cedula || row.Cedula || row.CEDULA || row.cédula || row.Cédula || '';
+            const celular = row.celular || row.Celular || row.CELULAR || row.telefono || row.Telefono || row.TELEFONO || '';
+
+            if (!nombre || !cedula) {
+              console.warn(`Fila ${index + 1} no tiene nombre o cédula`);
+              return null;
+            }
+
+            return {
+              id: `excel-${index}`,
+              nombre: nombre.toString().trim(),
+              cedula: cedula.toString().trim(),
+              celular: celular ? celular.toString().trim() : '',
+              fecha_registro: new Date().toISOString(),
+              tipo_registrador: 'Archivo',
+              contador: 1,
+              filtroActual: 'archivo'
+            };
+          })
+          .filter(p => p !== null);
+
+        if (participantesDelArchivo.length === 0) {
+          alert('El archivo no contiene datos válidos. Asegúrate de que tenga columnas: nombre, cedula y opcionalmente celular.');
+          return;
+        }
+
+        setAllParticipants(participantesDelArchivo);
+        setAvailableParticipants(participantesDelArchivo);
+        setParticipants(participantesDelArchivo);
+        setExcelFile(file);
+        setSourceMode('archivo');
+        alert(`Se cargaron ${participantesDelArchivo.length} participantes del archivo`);
+      } catch (error) {
+        console.error('Error al procesar el archivo Excel:', error);
+        alert('Error al procesar el archivo. Asegúrate de que sea un archivo Excel válido.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // Función para limpiar la selección de archivo
+  const handleClearFile = () => {
+    setExcelFile(null);
+    setAllParticipants([]);
+    setAvailableParticipants([]);
+    setParticipants([]);
+    setWinners([]);
+    setHistory([]);
+    setSourceMode('filtros');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   // Función para activar/desactivar pantalla completa
   const toggleFullscreen = () => {
@@ -180,8 +256,18 @@ export default function SorteoPage() {
     }
   };
 
+  // Cargar registradores cuando se cambia a modo filtros
+  useEffect(() => {
+    if (sourceMode === 'filtros' && registradores.length === 0) {
+      fetchRegistradores();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceMode]);
+
   // Cargar datos iniciales al cambiar filtros
   useEffect(() => {
+    if (sourceMode === 'archivo') return;
+
     const loadData = async () => {
       // Guardar el estado de carga actual
       const wasLoading = loading;
@@ -197,7 +283,7 @@ export default function SorteoPage() {
     
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fechaInicio, fechaFin, selectedTipoRegistrador]);
+  }, [fechaInicio, fechaFin, selectedTipoRegistrador, sourceMode]);
 
   // Actualizar participantes disponibles cuando cambia la lista de ganadores o participantes
   useEffect(() => {
@@ -605,65 +691,136 @@ export default function SorteoPage() {
           </div>
           
           <div className="bg-white/95 backdrop-blur-md p-4 rounded-lg shadow-lg mb-6 border border-white/40">
-            <h3 className="text-lg font-medium text-gray-800 mb-4">Filtros de Búsqueda</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de Registrador
-                </label>
-                <select
-                  value={selectedTipoRegistrador}
-                  onChange={handleTipoRegistradorChange}
-                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-                  required
-                >
-                  <option value="" disabled>Seleccione un tipo</option>
-                  {registradores.map((tipo) => (
-                    <option key={tipo.id} value={tipo.id}>
-                      {tipo.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha de inicio
-                </label>
-                <input
-                  type="date"
-                  value={fechaInicio}
-                  onChange={handleFechaInicioChange}
-                  max={fechaFin}
-                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha de fin
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    value={fechaFin}
-                    onChange={handleFechaFinChange}
-                    min={fechaInicio}
-                    max={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-                  />
-                  <button
-                    onClick={aplicarFiltro}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-md hover:scale-105 transform transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 whitespace-nowrap shadow-lg font-semibold"
-                    disabled={loading}
-                  >
-                    {loading ? 'Cargando...' : 'Aplicar Filtros'}
-                  </button>
+            <h3 className="text-lg font-medium text-gray-800 mb-4">Modo de Sorteo</h3>
+            
+            {/* Selector de modo */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <button
+                onClick={() => {
+                  setSourceMode('filtros');
+                  handleClearFile();
+                }}
+                className={`p-4 rounded-lg border-2 transition-all font-semibold ${
+                  sourceMode === 'filtros'
+                    ? 'border-purple-600 bg-purple-100 text-purple-700'
+                    : 'border-gray-300 bg-white text-gray-600 hover:border-purple-300'
+                }`}
+              >
+                📊 Sorteo por Filtros
+              </button>
+              <button
+                onClick={() => setSourceMode('archivo')}
+                className={`p-4 rounded-lg border-2 transition-all font-semibold flex items-center justify-center gap-2 ${
+                  sourceMode === 'archivo'
+                    ? 'border-purple-600 bg-purple-100 text-purple-700'
+                    : 'border-gray-300 bg-white text-gray-600 hover:border-purple-300'
+                }`}
+              >
+                <CloudUpload size={20} />
+                Sorteo por Archivo Excel
+              </button>
+            </div>
+
+            {/* Contenido según el modo seleccionado */}
+            {sourceMode === 'archivo' && (
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex flex-col gap-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Subir archivo Excel (Columnas: nombre, cedula, celular*)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={handleFileUpload}
+                      className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                    {excelFile && (
+                      <button
+                        onClick={handleClearFile}
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors font-semibold"
+                      >
+                        Limpiar
+                      </button>
+                    )}
+                  </div>
+                  {excelFile && (
+                    <p className="text-sm text-green-600 font-medium">✓ Archivo: {excelFile.name}</p>
+                  )}
+                  <p className="text-xs text-gray-600 mt-2">
+                    * El archivo debe contener columnas con: <strong>nombre</strong> (obligatorio), <strong>cedula</strong> (obligatorio) y opcionalmente <strong>celular</strong> (teléfono).
+                  </p>
                 </div>
               </div>
-            </div>
+            )}
+
+            {sourceMode === 'filtros' && (
+              <>
+                <h3 className="text-lg font-medium text-gray-800 mb-4">Filtros de Búsqueda</h3>
+              </>
+            )}
+
+            {sourceMode === 'filtros' && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo de Registrador
+                  </label>
+                  <select
+                    value={selectedTipoRegistrador}
+                    onChange={handleTipoRegistradorChange}
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    required
+                  >
+                    <option value="" disabled>Seleccione un tipo</option>
+                    {registradores.map((tipo) => (
+                      <option key={tipo.id} value={tipo.id}>
+                        {tipo.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha de inicio
+                  </label>
+                  <input
+                    type="date"
+                    value={fechaInicio}
+                    onChange={handleFechaInicioChange}
+                    max={fechaFin}
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha de fin
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={fechaFin}
+                      onChange={handleFechaFinChange}
+                      min={fechaInicio}
+                      max={new Date().toISOString().split('T')[0]}
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    />
+                    <button
+                      onClick={aplicarFiltro}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-md hover:scale-105 transform transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 whitespace-nowrap shadow-lg font-semibold"
+                      disabled={loading}
+                    >
+                      {loading ? 'Cargando...' : 'Aplicar Filtros'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             
-            {selectedTipoRegistrador && registradores.length > 0 && (
+            {sourceMode === 'filtros' && selectedTipoRegistrador && registradores.length > 0 && (
               <div className="mt-2 text-sm text-gray-700">
                 {registradores.find(t => t.id.toString() === selectedTipoRegistrador)?.descripcion}
               </div>
