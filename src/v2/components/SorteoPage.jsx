@@ -66,15 +66,15 @@ export default function SorteoPage() {
             const cedula = row.cedula || row.Cedula || row.CEDULA || row.cédula || row.Cédula || '';
             const celular = row.celular || row.Celular || row.CELULAR || row.telefono || row.Telefono || row.TELEFONO || '';
 
-            if (!nombre || !cedula) {
-              console.warn(`Fila ${index + 1} no tiene nombre o cédula`);
+            if (!nombre) {
+              console.warn(`Fila ${index + 1} no tiene nombre`);
               return null;
             }
 
             return {
               id: `excel-${index}`,
               nombre: nombre.toString().trim(),
-              cedula: cedula.toString().trim(),
+              cedula: cedula ? cedula.toString().trim() : `SN-${index}`,
               celular: celular ? celular.toString().trim() : '',
               fecha_registro: new Date().toISOString(),
               tipo_registrador: 'Archivo',
@@ -85,7 +85,7 @@ export default function SorteoPage() {
           .filter(p => p !== null);
 
         if (participantesDelArchivo.length === 0) {
-          alert('El archivo no contiene datos válidos. Asegúrate de que tenga columnas: nombre, cedula y opcionalmente celular.');
+          alert('El archivo no contiene datos válidos. Asegúrate de que tenga al menos la columna: nombre.');
           return;
         }
 
@@ -94,10 +94,12 @@ export default function SorteoPage() {
         setParticipants(participantesDelArchivo);
         setExcelFile(file);
         setSourceMode('archivo');
+        setLoading(false);
         alert(`Se cargaron ${participantesDelArchivo.length} participantes del archivo`);
       } catch (error) {
         console.error('Error al procesar el archivo Excel:', error);
         alert('Error al procesar el archivo. Asegúrate de que sea un archivo Excel válido.');
+        setLoading(false);
       }
     };
     reader.readAsArrayBuffer(file);
@@ -726,7 +728,7 @@ export default function SorteoPage() {
               <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex flex-col gap-3">
                   <label className="block text-sm font-medium text-gray-700">
-                    Subir archivo Excel (Columnas: nombre, cedula, celular*)
+                    Subir archivo Excel (Columnas: nombre*, cedula, celular)
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -749,7 +751,7 @@ export default function SorteoPage() {
                     <p className="text-sm text-green-600 font-medium">✓ Archivo: {excelFile.name}</p>
                   )}
                   <p className="text-xs text-gray-600 mt-2">
-                    * El archivo debe contener columnas con: <strong>nombre</strong> (obligatorio), <strong>cedula</strong> (obligatorio) y opcionalmente <strong>celular</strong> (teléfono).
+                    * El archivo debe contener la columna <strong>nombre</strong> (obligatoria). Las columnas <strong>cedula</strong> y <strong>celular</strong> son opcionales.
                   </p>
                 </div>
               </div>
