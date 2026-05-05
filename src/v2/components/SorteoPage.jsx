@@ -20,6 +20,10 @@ export default function SorteoPage() {
   const [sourceMode, setSourceMode] = useState('filtros'); // 'filtros' o 'archivo'
   const [excelFile, setExcelFile] = useState(null);
   const fileInputRef = useRef(null);
+  const [manualParticipants, setManualParticipants] = useState([]); // Participantes agregados manualmente
+  const [showAddParticipantModal, setShowAddParticipantModal] = useState(false);
+  const [newParticipantName, setNewParticipantName] = useState('');
+  const [showManualParticipantsList, setShowManualParticipantsList] = useState(false);
   // Función para formatear la fecha a YYYY-MM-DD en la zona horaria local
   const formatLocalDate = (date) => {
     const year = date.getFullYear();
@@ -94,6 +98,7 @@ export default function SorteoPage() {
         setParticipants(participantesDelArchivo);
         setExcelFile(file);
         setSourceMode('archivo');
+        setManualParticipants([]); // Limpiar participantes manuales al cargar nuevo archivo
         setLoading(false);
         alert(`Se cargaron ${participantesDelArchivo.length} participantes del archivo`);
       } catch (error) {
@@ -114,9 +119,62 @@ export default function SorteoPage() {
     setWinners([]);
     setHistory([]);
     setSourceMode('filtros');
+    setManualParticipants([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  // Función para agregar participante manualmente
+  const handleAddManualParticipant = () => {
+    if (!newParticipantName.trim()) {
+      alert('Por favor ingresa un nombre');
+      return;
+    }
+
+    const newParticipant = {
+      id: `manual-${Date.now()}`,
+      nombre: newParticipantName.trim(),
+      cedula: '',
+      celular: '',
+      fecha_registro: new Date().toISOString(),
+      tipo_registrador: 'Manual',
+      contador: 1,
+      filtroActual: 'manual'
+    };
+
+    setManualParticipants(prev => [...prev, newParticipant]);
+    setNewParticipantName('');
+    setShowAddParticipantModal(false);
+
+    // Actualizar la lista combinada de participantes
+    const allCombined = [...allParticipants, newParticipant];
+    
+    // Filtrar excluir ganadores previos
+    const cedulasGanadoras = new Set(winners.map(w => w.cedula));
+    const participantesSinGanadores = allCombined.filter(
+      p => !cedulasGanadoras.has(p.cedula)
+    );
+    
+    setAllParticipants(allCombined);
+    setAvailableParticipants(participantesSinGanadores);
+    setParticipants(participantesSinGanadores);
+  };
+
+  // Función para eliminar participante manual
+  const handleRemoveManualParticipant = (participantId) => {
+    setManualParticipants(prev => prev.filter(p => p.id !== participantId));
+    
+    // Actualizar la lista combinada
+    const updated = allParticipants.filter(p => p.id !== participantId);
+    const cedulasGanadoras = new Set(winners.map(w => w.cedula));
+    const participantesSinGanadores = updated.filter(
+      p => !cedulasGanadoras.has(p.cedula)
+    );
+    
+    setAllParticipants(updated);
+    setAvailableParticipants(participantesSinGanadores);
+    setParticipants(participantesSinGanadores);
   };
 
   // Función para activar/desactivar pantalla completa
@@ -628,16 +686,20 @@ export default function SorteoPage() {
                     display: 'inline-block',
                     padding: '0 10px'
                   }}>{winner.nombre}</p>
-                  <p className="text-gray-700">
-                    Cédula: {winner.cedula ? 
-                      `${winner.cedula.substring(0, 2)}${'*'.repeat(Math.max(0, winner.cedula.length - 4))}${winner.cedula.slice(-2)}` : 
-                      'N/A'}
-                  </p>
-                  <p className="text-gray-700 mt-2">
-                    Teléfono: {winner.celular ? 
-                      `${winner.celular.substring(0, 2)}${'*'.repeat(Math.max(0, winner.celular.length - 4))}${winner.celular.slice(-2)}` : 
-                      'N/A'}
-                  </p>
+                  {sourceMode !== 'archivo' && (
+                    <>
+                      <p className="text-gray-700">
+                        Cédula: {winner.cedula ? 
+                          `${winner.cedula.substring(0, 2)}${'*'.repeat(Math.max(0, winner.cedula.length - 4))}${winner.cedula.slice(-2)}` : 
+                          'N/A'}
+                      </p>
+                      <p className="text-gray-700 mt-2">
+                        Teléfono: {winner.celular ? 
+                          `${winner.celular.substring(0, 2)}${'*'.repeat(Math.max(0, winner.celular.length - 4))}${winner.celular.slice(-2)}` : 
+                          'N/A'}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -739,20 +801,57 @@ export default function SorteoPage() {
                       className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     />
                     {excelFile && (
-                      <button
-                        onClick={handleClearFile}
-                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors font-semibold"
-                      >
-                        Limpiar
-                      </button>
+                      <>
+                        <button
+                          onClick={handleClearFile}
+                          className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors font-semibold whitespace-nowrap"
+                        >
+                          Limpiar
+                        </button>
+                        <button
+                          onClick={() => setShowAddParticipantModal(true)}
+                          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors font-semibold whitespace-nowrap"
+                        >
+                          + Agregar
+                        </button>
+                        <button
+                          onClick={() => setShowManualParticipantsList(!showManualParticipantsList)}
+                          className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md transition-colors font-semibold whitespace-nowrap"
+                        >
+                          {showManualParticipantsList ? 'Ocultar' : 'Ver'} Listado
+                        </button>
+                      </>
                     )}
                   </div>
                   {excelFile && (
                     <p className="text-sm text-green-600 font-medium">✓ Archivo: {excelFile.name}</p>
                   )}
-                  <p className="text-xs text-gray-600 mt-2">
-                    * El archivo debe contener la columna <strong>nombre</strong> (obligatoria). Las columnas <strong>cedula</strong> y <strong>celular</strong> son opcionales.
-                  </p>
+
+                  {/* Sección de participantes manuales */}
+                  {excelFile && showManualParticipantsList && (
+                    <div className="mt-4 pt-4 border-t border-blue-200">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Participantes Agregados Manualmente</h4>
+
+                      {/* Lista de participantes manuales */}
+                      {manualParticipants.length > 0 ? (
+                        <div className="bg-white rounded-md p-3 border border-blue-200 max-h-40 overflow-y-auto">
+                          {manualParticipants.map((p) => (
+                            <div key={p.id} className="flex justify-between items-center py-2 px-2 hover:bg-blue-50 rounded text-sm">
+                              <span className="font-medium text-gray-700">{p.nombre}</span>
+                              <button
+                                onClick={() => handleRemoveManualParticipant(p.id)}
+                                className="text-red-500 hover:text-red-700 font-semibold text-xs"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center py-4">No hay participantes agregados manualmente</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1056,6 +1155,46 @@ export default function SorteoPage() {
         </div>
       </div>
 
+      {/* Modal para agregar participante */}
+      {showAddParticipantModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold mb-4 text-gray-800">Agregar Participante</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nombre del participante
+              </label>
+              <input
+                type="text"
+                value={newParticipantName}
+                onChange={(e) => setNewParticipantName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddManualParticipant()}
+                placeholder="Ingresa el nombre"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setShowAddParticipantModal(false);
+                  setNewParticipantName('');
+                }}
+                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-md transition-colors font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAddManualParticipant}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors font-semibold"
+              >
+                Agregar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         .clip-arrow {
           clip-path: polygon(50% 100%, 0 0, 100% 0);
@@ -1064,3 +1203,5 @@ export default function SorteoPage() {
     </div>
   );
 }
+
+
