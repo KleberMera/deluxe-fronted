@@ -98,6 +98,7 @@ export default function SorteoPage() {
         const hasCelularColumn = columnExists(rows, 'celular', 'telefono');
         const hasComentariosColumn = columnExists(rows, 'comentarios', 'comentario');
         const hasUrlsColumn = columnExists(rows, 'urls', 'url', 'perfil');
+        const hasBarriosColumn = columnExists(rows, 'barrios', 'barrio', 'localidad');
 
         // Validar y mapear datos del Excel
         const participantesDelArchivo = rows
@@ -135,6 +136,9 @@ export default function SorteoPage() {
             }
             if (hasUrlsColumn) {
               participant.urls = getColumnValue(row, 'urls', 'url', 'perfil');
+            }
+            if (hasBarriosColumn) {
+              participant.barrios = getColumnValue(row, 'barrios', 'barrio', 'localidad');
             }
 
             return participant;
@@ -757,6 +761,11 @@ export default function SorteoPage() {
                     {winner.comentarios !== undefined && (
                       <p>Comentario: {winner.comentarios || 'Sin Comentario'}</p>
                     )}
+                    
+                    {/* Mostrar barrios si existen */}
+                    {winner.barrios !== undefined && (
+                      <p>Barrio: {winner.barrios || 'Sin especificar'}</p>
+                    )}
                   </div>
                   
                   {/* Mostrar botón de perfil si existe URL */}
@@ -867,7 +876,7 @@ export default function SorteoPage() {
                     Subir archivo Excel
                     <div className="text-xs text-gray-600 mt-1 font-normal">
                       Obligatoria: <span className="font-semibold">nombres</span> | 
-                      Opcionales: cedula, celular, comentarios, urls, y más
+                      Opcionales: cedula, celular, comentarios, urls, barrios
                     </div>
                   </label>
                   <div className="flex gap-2">
@@ -1166,6 +1175,13 @@ export default function SorteoPage() {
                       </div>
                     )}
                     
+                    {/* Mostrar barrios si existen */}
+                    {winner.barrios !== undefined && (
+                      <div>
+                        <span className="font-medium">Barrio:</span> {winner.barrios || 'Sin especificar'}
+                      </div>
+                    )}
+                    
                     {/* Mostrar botón de perfil si existe URL */}
                     {winner.urls && (
                       <div className="mt-6 flex justify-center">
@@ -1235,6 +1251,11 @@ export default function SorteoPage() {
                                 Comentario
                               </th>
                             )}
+                            {history.some(item => item.winner.barrios !== undefined) && (
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                                Barrio
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-purple-200">
@@ -1255,6 +1276,11 @@ export default function SorteoPage() {
                               {history.some(h => h.winner.comentarios !== undefined) && (
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                   {item.winner.comentarios || '-'}
+                                </td>
+                              )}
+                              {history.some(h => h.winner.barrios !== undefined) && (
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                  {item.winner.barrios || '-'}
                                 </td>
                               )}
                             </tr>
