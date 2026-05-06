@@ -24,6 +24,37 @@ export default function SorteoPage() {
   const [showAddParticipantModal, setShowAddParticipantModal] = useState(false);
   const [newParticipantName, setNewParticipantName] = useState('');
   const [showManualParticipantsList, setShowManualParticipantsList] = useState(false);
+  
+  // Función auxiliar para normalizar nombres de columnas (case-insensitive)
+  const normalizeColumnName = (name) => {
+    if (!name) return '';
+    return name.toString().trim().toLowerCase();
+  };
+
+  // Función auxiliar para encontrar el valor de una columna con variaciones de nombre
+  const getColumnValue = (row, ...possibleNames) => {
+    const normalizedPossibleNames = possibleNames.map(name => normalizeColumnName(name));
+    const rowKeys = Object.keys(row).map(key => normalizeColumnName(key));
+    
+    for (const possibleName of normalizedPossibleNames) {
+      const keyIndex = rowKeys.indexOf(possibleName);
+      if (keyIndex !== -1) {
+        const actualKey = Object.keys(row)[keyIndex];
+        const value = row[actualKey];
+        return value ? value.toString().trim() : '';
+      }
+    }
+    return '';
+  };
+
+  // Función auxiliar para detectar si una columna existe en el Excel
+  const columnExists = (rows, ...possibleNames) => {
+    if (rows.length === 0) return false;
+    const normalizedPossibleNames = possibleNames.map(name => normalizeColumnName(name));
+    const rowKeys = Object.keys(rows[0]).map(key => normalizeColumnName(key));
+    return normalizedPossibleNames.some(name => rowKeys.includes(name));
+  };
+
   // Función para formatear la fecha a YYYY-MM-DD en la zona horaria local
   const formatLocalDate = (date) => {
     const year = date.getFullYear();
@@ -49,7 +80,7 @@ export default function SorteoPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef(null);
 
-  // Función para parsear archivo Excel
+  // Función para parsear archivo Excel con soporte dinámico de columnas
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -62,29 +93,51 @@ export default function SorteoPage() {
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(worksheet);
 
+        // Detectar qué columnas están presentes
+        const hasCedulaColumn = columnExists(rows, 'cedula', 'cédula');
+        const hasCelularColumn = columnExists(rows, 'celular', 'telefono');
+        const hasComentariosColumn = columnExists(rows, 'comentarios', 'comentario');
+        const hasUrlsColumn = columnExists(rows, 'urls', 'url', 'perfil');
+
         // Validar y mapear datos del Excel
         const participantesDelArchivo = rows
           .map((row, index) => {
-            // Buscar las columnas por nombre o posición
-            const nombre = row.nombre || row.Nombre || row.NOMBRE || '';
-            const cedula = row.cedula || row.Cedula || row.CEDULA || row.cédula || row.Cédula || '';
-            const celular = row.celular || row.Celular || row.CELULAR || row.telefono || row.Telefono || row.TELEFONO || '';
+            // Obtener datos usando la función auxiliar
+            const nombre = getColumnValue(row, 'nombre', 'nombres', 'name');
 
             if (!nombre) {
               console.warn(`Fila ${index + 1} no tiene nombre`);
               return null;
             }
 
-            return {
+            // Obtener cédula si existe la columna
+            const cedulaDelArchivo = hasCedulaColumn ? getColumnValue(row, 'cedula', 'cédula') : '';
+            const cedula = cedulaDelArchivo || `SN-${index}`;
+
+            const participant = {
               id: `excel-${index}`,
-              nombre: nombre.toString().trim(),
-              cedula: cedula ? cedula.toString().trim() : `SN-${index}`,
-              celular: celular ? celular.toString().trim() : '',
+              nombre,
+              cedula,
+              cedulaDelArchivo: !!cedulaDelArchivo, // Flag indicando si la cédula fue proporcionada
               fecha_registro: new Date().toISOString(),
               tipo_registrador: 'Archivo',
               contador: 1,
-              filtroActual: 'archivo'
+              filtroActual: 'archivo',
+              sourceMode: 'archivo'
             };
+
+            // Agregar campos opcionales si existen
+            if (hasCelularColumn) {
+              participant.celular = getColumnValue(row, 'celular', 'telefono');
+            }
+            if (hasComentariosColumn) {
+              participant.comentarios = getColumnValue(row, 'comentarios', 'comentario');
+            }
+            if (hasUrlsColumn) {
+              participant.urls = getColumnValue(row, 'urls', 'url', 'perfil');
+            }
+
+            return participant;
           })
           .filter(p => p !== null);
 
@@ -135,12 +188,14 @@ export default function SorteoPage() {
     const newParticipant = {
       id: `manual-${Date.now()}`,
       nombre: newParticipantName.trim(),
-      cedula: '',
+      cedula: `SN-manual-${Date.now()}`,
       celular: '',
+      cedulaDelArchivo: false, // Los participantes manuales no tienen cédula del archivo
       fecha_registro: new Date().toISOString(),
       tipo_registrador: 'Manual',
       contador: 1,
-      filtroActual: 'manual'
+      filtroActual: 'manual',
+      sourceMode: 'archivo'
     };
 
     setManualParticipants(prev => [...prev, newParticipant]);
@@ -686,19 +741,36 @@ export default function SorteoPage() {
                     display: 'inline-block',
                     padding: '0 10px'
                   }}>{winner.nombre}</p>
-                  {sourceMode !== 'archivo' && (
-                    <>
-                      <p className="text-gray-700">
-                        Cédula: {winner.cedula ? 
-                          `${winner.cedula.substring(0, 2)}${'*'.repeat(Math.max(0, winner.cedula.length - 4))}${winner.cedula.slice(-2)}` : 
-                          'N/A'}
-                      </p>
-                      <p className="text-gray-700 mt-2">
-                        Teléfono: {winner.celular ? 
-                          `${winner.celular.substring(0, 2)}${'*'.repeat(Math.max(0, winner.celular.length - 4))}${winner.celular.slice(-2)}` : 
-                          'N/A'}
-                      </p>
-                    </>
+                  
+                  <div className="mt-4 space-y-2 text-gray-700">
+                    {/* Mostrar cédula solo si fue proporcionada en el archivo */}
+                    {winner.cedulaDelArchivo && (
+                      <p>Cédula: {winner.cedula}</p>
+                    )}
+                    
+                    {/* Mostrar teléfono si existe */}
+                    {winner.celular && (
+                      <p>Teléfono: {winner.celular}</p>
+                    )}
+                    
+                    {/* Mostrar comentarios si existen */}
+                    {winner.comentarios !== undefined && (
+                      <p>Comentario: {winner.comentarios || 'Sin Comentario'}</p>
+                    )}
+                  </div>
+                  
+                  {/* Mostrar botón de perfil si existe URL */}
+                  {winner.urls && (
+                    <div className="mt-4">
+                      <a
+                        href={winner.urls}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-md font-semibold transition-all"
+                      >
+                        👤 Ir al Perfil
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>
@@ -790,7 +862,11 @@ export default function SorteoPage() {
               <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex flex-col gap-3">
                   <label className="block text-sm font-medium text-gray-700">
-                    Subir archivo Excel (Columnas: nombre*, cedula, celular)
+                    Subir archivo Excel
+                    <div className="text-xs text-gray-600 mt-1 font-normal">
+                      Obligatoria: <span className="font-semibold">nombres</span> | 
+                      Opcionales: cedula, celular, comentarios, urls, y más
+                    </div>
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -1065,12 +1141,41 @@ export default function SorteoPage() {
                 <div className="text-center py-6 animate-pulse">
                   <div className="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">🏆 ¡Tenemos un ganador! 🏆</div>
                   <div className="text-3xl font-bold text-pink-600 mb-3">{winner.nombre}</div>
-                  <div className="text-lg">
-                    <span className="font-medium">Cédula:</span> {winner.cedula}
+                  
+                  <div className="text-lg space-y-2 mt-4">
+                    {/* Mostrar cédula solo si fue proporcionada en el archivo */}
+                    {winner.cedulaDelArchivo && (
+                      <div>
+                        <span className="font-medium">Cédula:</span> {winner.cedula}
+                      </div>
+                    )}
+                    
+                    {/* Mostrar teléfono si existe */}
                     {winner.celular && (
-                      <span className="ml-3">
+                      <div>
                         <span className="font-medium">Teléfono:</span> {winner.celular}
-                      </span>
+                      </div>
+                    )}
+                    
+                    {/* Mostrar comentarios si existen */}
+                    {winner.comentarios !== undefined && (
+                      <div>
+                        <span className="font-medium">Comentario:</span> {winner.comentarios || 'Sin Comentario'}
+                      </div>
+                    )}
+                    
+                    {/* Mostrar botón de perfil si existe URL */}
+                    {winner.urls && (
+                      <div className="mt-4">
+                        <a
+                          href={winner.urls}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-md font-semibold transition-all hover:scale-105 transform"
+                        >
+                          👤 Ir al Perfil
+                        </a>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1121,6 +1226,11 @@ export default function SorteoPage() {
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
                               Teléfono
                             </th>
+                            {history.some(item => item.winner.comentarios !== undefined) && (
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                                Comentario
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-purple-200">
@@ -1133,11 +1243,16 @@ export default function SorteoPage() {
                                 {item.winner.nombre}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                {item.winner.cedula}
+                                {item.winner.cedulaDelArchivo ? item.winner.cedula : '-'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                {item.winner.celular || 'N/A'}
+                                {item.winner.celular || '-'}
                               </td>
+                              {history.some(h => h.winner.comentarios !== undefined) && (
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                  {item.winner.comentarios || '-'}
+                                </td>
+                              )}
                             </tr>
                           ))}
                         </tbody>
