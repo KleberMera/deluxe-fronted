@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
-import { Fullscreen, FullscreenExit, CloudUpload } from '@mui/icons-material';
+import { Fullscreen, FullscreenExit, CloudUpload, Facebook } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import environments from "../environments/environment";
 
@@ -727,8 +727,8 @@ export default function SorteoPage() {
             </div>
 
             {winner && showWinnerAnimation && (
-              <div className="fixed inset-0 flex items-center justify-center z-30 pointer-events-none">
-                <div className="p-6 bg-green-100 rounded-lg shadow-xl text-center border-4 border-yellow-400 animate-bounce max-w-md w-full mx-4" style={{
+              <div className="fixed inset-0 flex items-center justify-center z-30 pointer-events-auto">
+                <div className="p-6 bg-green-100 rounded-lg shadow-xl text-center border-4 border-yellow-400 max-w-md w-full mx-4" style={{
                   background: 'linear-gradient(135deg, #f0fff0 0%, #e6ffe6 100%)',
                   boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
                 }}>
@@ -761,14 +761,16 @@ export default function SorteoPage() {
                   
                   {/* Mostrar botón de perfil si existe URL */}
                   {winner.urls && (
-                    <div className="mt-4">
+                    <div className="mt-6 flex justify-center">
                       <a
                         href={winner.urls}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-block px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-md font-semibold transition-all"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition-all hover:shadow-lg transform hover:scale-105 border-2 border-blue-500"
+                        title="Ver perfil en Facebook"
                       >
-                        👤 Ir al Perfil
+                        <Facebook size={24} />
+                        <span>Ver Perfil</span>
                       </a>
                     </div>
                   )}
@@ -1138,7 +1140,7 @@ export default function SorteoPage() {
               </h2>
 
               {showWinnerAnimation && winner && (
-                <div className="text-center py-6 animate-pulse">
+                <div className="text-center py-6">
                   <div className="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">🏆 ¡Tenemos un ganador! 🏆</div>
                   <div className="text-3xl font-bold text-pink-600 mb-3">{winner.nombre}</div>
                   
@@ -1166,14 +1168,16 @@ export default function SorteoPage() {
                     
                     {/* Mostrar botón de perfil si existe URL */}
                     {winner.urls && (
-                      <div className="mt-4">
+                      <div className="mt-6 flex justify-center">
                         <a
                           href={winner.urls}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-block px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-md font-semibold transition-all hover:scale-105 transform"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition-all hover:shadow-lg transform hover:scale-105 border-2 border-blue-500"
+                          title="Ver perfil en Facebook"
                         >
-                          👤 Ir al Perfil
+                          <Facebook size={24} />
+                          <span>Ver Perfil</span>
                         </a>
                       </div>
                     )}
