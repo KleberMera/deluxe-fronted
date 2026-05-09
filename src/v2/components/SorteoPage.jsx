@@ -263,6 +263,23 @@ export default function SorteoPage() {
     };
   }, []);
 
+  // Permitir iniciar el sorteo con Enter en pantalla completa
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Enter' && !event.repeat) {
+        event.preventDefault();
+        startDraw();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFullscreen, startDraw]);
+
   // Colores vivos para la ruleta
   const colors = [
     "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
@@ -423,7 +440,7 @@ export default function SorteoPage() {
     }
   }, [winners, allParticipants]);
 
-  const startDraw = () => {
+  function startDraw() {
     if (spinning) {
       alert('La ruleta ya está girando');
       return;
@@ -521,7 +538,7 @@ export default function SorteoPage() {
     
     // Start the animation
     requestAnimationFrame(animate);
-  };
+  }
 
   // Actualizar el resaltado según la rotación actual
   const updateHighlight = (angle) => {
@@ -630,6 +647,13 @@ export default function SorteoPage() {
           >
             <FullscreenExit />
           </button>
+        </div>
+
+        <div className="absolute bottom-4 right-4 z-40">
+          <div className="px-4 py-2 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-white shadow-xl">
+            <span className="text-sm uppercase tracking-wide text-white/80">Ganadores</span>
+            <span className="ml-3 text-2xl font-black text-yellow-300">{winners.length}</span>
+          </div>
         </div>
         
         <div className="flex flex-col items-center justify-center flex-grow w-full max-w-4xl px-4">
