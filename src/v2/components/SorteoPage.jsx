@@ -1,8 +1,19 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
 import { Fullscreen, FullscreenExit, CloudUpload, Facebook } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import environments from "../environments/environment";
+
+// Función para enmascarar teléfono
+const maskPhone = (phone) => {
+  if (!phone) return '';
+  const str = phone.toString();
+  if (str.length <= 4) return '*'.repeat(str.length);
+  if (str.length <= 6) return str[0] + '*'.repeat(str.length - 2) + str[str.length - 1];
+  // Mostrar solo los dos primeros y dos últimos dígitos
+  return str.slice(0, 2) + '*'.repeat(str.length - 4) + str.slice(-2);
+};
 
 export default function SorteoPage() {
   const [allParticipants, setAllParticipants] = useState([]); // Lista completa de participantes
@@ -280,6 +291,7 @@ export default function SorteoPage() {
     };
   }, [isFullscreen, startDraw]);
 
+
   // Colores vivos para la ruleta
   const colors = [
     "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
@@ -287,7 +299,25 @@ export default function SorteoPage() {
     "#FF5733", "#33FF57", "#5733FF", "#33FFEC", "#EC33FF",
     "#FFEC33", "#FF33A8", "#33A8FF", "#A8FF33", "#A833FF"
   ];
-  
+
+  // Límite visual de segmentos en la ruleta
+  const MAX_VISUAL_SEGMENTS = 300;
+
+  // Participantes visuales para la ruleta (solo para mostrar, no afecta la lógica del sorteo)
+  let visualParticipants = participants;
+  let visualMap = null;
+  if (participants.length > MAX_VISUAL_SEGMENTS) {
+    // Selecciona MAX_VISUAL_SEGMENTS participantes distribuidos uniformemente para mostrar
+    const step = participants.length / MAX_VISUAL_SEGMENTS;
+    visualParticipants = [];
+    visualMap = [];
+    for (let i = 0; i < MAX_VISUAL_SEGMENTS; i++) {
+      const idx = Math.floor(i * step);
+      visualParticipants.push(participants[idx]);
+      visualMap.push(idx); // Mapea el segmento visual al índice real
+    }
+  }
+
   // Estilos para la transición suave de la ruleta
   const wheelStyle = {
     transform: `rotate(${rotation}deg)`,
@@ -540,15 +570,16 @@ export default function SorteoPage() {
     requestAnimationFrame(animate);
   }
 
-  // Actualizar el resaltado según la rotación actual
+  // Actualizar el resaltado según la rotación actual (usando visualParticipants si aplica)
   const updateHighlight = (angle) => {
-    if (allParticipants.length === 0) return;
-    
-    const sliceDegree = 360 / allParticipants.length;
+    if (participants.length === 0) return;
+    const useVisual = participants.length > MAX_VISUAL_SEGMENTS;
+    const arr = useVisual ? visualParticipants : participants;
+    const sliceDegree = 360 / arr.length;
     const normalizedAngle = ((angle % 360) + 360) % 360; // Asegurar ángulo entre 0 y 360
     const index = Math.floor(normalizedAngle / sliceDegree);
-    const currentIndex = (allParticipants.length - 1 - index) % allParticipants.length;
-    setCurrentHighlight(allParticipants[currentIndex]?.nombre || '');
+    const currentIndex = (arr.length - 1 - index) % arr.length;
+    setCurrentHighlight(arr[currentIndex]?.nombre || '');
   };
   
   // Para no mostrar nombres largos en la ruleta
@@ -690,14 +721,15 @@ export default function SorteoPage() {
                   style={wheelStyle}
                 >
                   <svg width="100%" height="100%" viewBox="0 0 360 360">
-                    {participants.map((participant, index) => {
-                      const sliceDegree = 360 / participants.length;
+                    {(participants.length > MAX_VISUAL_SEGMENTS ? visualParticipants : participants).map((participant, index) => {
+                      const arr = participants.length > MAX_VISUAL_SEGMENTS ? visualParticipants : participants;
+                      const sliceDegree = 360 / arr.length;
                       const startAngle = index * sliceDegree;
                       const endAngle = (index + 1) * sliceDegree;
 
                       const startRadians = (startAngle - 90) * Math.PI / 180;
                       const endRadians = (endAngle - 90) * Math.PI / 180;
-                      
+                
                       const startX = 180 + 180 * Math.cos(startRadians);
                       const startY = 180 + 180 * Math.sin(startRadians);
                       const endX = 180 + 180 * Math.cos(endRadians);
@@ -776,9 +808,11 @@ export default function SorteoPage() {
                       <p>Cédula: {winner.cedula}</p>
                     )}
                     
-                    {/* Mostrar teléfono si existe */}
+                    {/* Mostrar teléfono si existe, enmascarado si es por filtros */}
                     {winner.celular && (
-                      <p>Teléfono: {winner.celular}</p>
+                      <p>
+                        Teléfono: {sourceMode === 'filtros' ? maskPhone(winner.celular) : winner.celular}
+                      </p>
                     )}
                     
                     {/* Mostrar comentarios si existen */}
@@ -1185,10 +1219,10 @@ export default function SorteoPage() {
                       </div>
                     )}
                     
-                    {/* Mostrar teléfono si existe */}
+                    {/* Mostrar teléfono si existe, enmascarado si es por filtros */}
                     {winner.celular && (
                       <div>
-                        <span className="font-medium">Teléfono:</span> {winner.celular}
+                        <span className="font-medium">Teléfono:</span> {sourceMode === 'filtros' ? maskPhone(winner.celular) : winner.celular}
                       </div>
                     )}
                     
