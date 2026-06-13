@@ -16,17 +16,24 @@ const maskPhone = (phone) => {
 };
 
 export default function SorteoPage() {
+  // Load from localStorage on initial render
   const [allParticipants, setAllParticipants] = useState([]); // Lista completa de participantes
   const [availableParticipants, setAvailableParticipants] = useState([]); // Participantes que aún no han ganado
   const [participants, setParticipants] = useState([]); // Lista de participantes actual
-  const [history, setHistory] = useState([]); // Historial de ganadores
+  const [history, setHistory] = useState(() => {
+    const saved = localStorage.getItem('sorteo_history');
+    return saved ? JSON.parse(saved) : [];
+  }); // Historial de ganadores
   const [winner, setWinner] = useState(null);
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [currentHighlight, setCurrentHighlight] = useState('');
   const spinDuration = 5000; // 5 seconds
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false);
-  const [winners, setWinners] = useState([]); // Lista de ganadores
+  const [winners, setWinners] = useState(() => {
+    const saved = localStorage.getItem('sorteo_winners');
+    return saved ? JSON.parse(saved) : [];
+  }); // Lista de ganadores
   const [showHistory, setShowHistory] = useState(true); // Mostrar el historial por defecto
   const [sourceMode, setSourceMode] = useState('filtros'); // 'filtros' o 'archivo'
   const [excelFile, setExcelFile] = useState(null);
@@ -35,6 +42,17 @@ export default function SorteoPage() {
   const [showAddParticipantModal, setShowAddParticipantModal] = useState(false);
   const [newParticipantName, setNewParticipantName] = useState('');
   const [showManualParticipantsList, setShowManualParticipantsList] = useState(false);
+  const [countdown, setCountdown] = useState(60); // Countdown in seconds for auto-refresh
+  
+  // Save winners to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('sorteo_winners', JSON.stringify(winners));
+  }, [winners]);
+  
+  // Save history to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('sorteo_history', JSON.stringify(history));
+  }, [history]);
   
   // Función auxiliar para normalizar nombres de columnas (case-insensitive)
   const normalizeColumnName = (name) => {
@@ -248,17 +266,17 @@ export default function SorteoPage() {
   };
 
   // Función para activar/desactivar pantalla completa
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen().catch(err => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
-      setIsFullscreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current?.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
       }
+    } catch (err) {
+      console.error(`Error with fullscreen: ${err.message}`);
     }
   };
 
@@ -450,6 +468,26 @@ export default function SorteoPage() {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fechaInicio, fechaFin, selectedTipoRegistrador, sourceMode]);
+  
+  // Auto-refresh every minute when in filtros mode
+  useEffect(() => {
+    if (sourceMode !== 'filtros') return;
+    
+    const interval = setInterval(() => {
+      fetchRegistradores();
+      fetchParticipants();
+      setCountdown(60); // Reset countdown after refresh
+    }, 60000); // 60000 ms = 1 minute
+    
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => prev > 0 ? prev - 1 : 60);
+    }, 1000);
+    
+    return () => {
+      clearInterval(interval);
+      clearInterval(countdownInterval);
+    };
+  }, [sourceMode, selectedTipoRegistrador]); // Add selectedTipoRegistrador to dependencies to ensure it uses current value
 
   // Actualizar participantes disponibles cuando cambia la lista de ganadores o participantes
   useEffect(() => {
@@ -591,13 +629,52 @@ export default function SorteoPage() {
     return name;
   };
 
-  // Reiniciar el sorteo
+  // Reiniciar el sorteo (clear all winners)
   const resetWinners = () => {
     if (window.confirm('¿Estás seguro de que deseas reiniciar la lista de ganadores? Esto permitirá que todos los participantes puedan volver a ganar.')) {
       setWinners([]);
+      setHistory([]);
       // Recargar los participantes para asegurar que todos estén disponibles
       fetchParticipants();
     }
+  };
+  
+  // Delete individual winner
+  const deleteWinner = (historyId, winnerCedula) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este ganador?')) {
+      // Remove from history
+      setHistory(prev => prev.filter(item => item.id !== historyId));
+      // Remove from winners
+      setWinners(prev => prev.filter(w => w.cedula !== winnerCedula));
+      // Refresh participants to make them available again
+      fetchParticipants();
+    }
+  };
+  
+  // Export winners to Excel
+  const exportWinnersToExcel = () => {
+    if (history.length === 0) {
+      alert('No hay ganadores para exportar');
+      return;
+    }
+    
+    // Prepare data for Excel
+    const data = history.map(item => ({
+      'Fecha y Hora': formatDate(item.date),
+      'Ganador': item.winner.nombre,
+      'Cédula': item.winner.cedula || '-',
+      'Teléfono': item.winner.celular || '-',
+      'Comentario': item.winner.comentarios || '-',
+      'Barrio': item.winner.barrios || '-'
+    }));
+    
+    // Create worksheet and workbook
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ganadores');
+    
+    // Download the Excel file
+    XLSX.writeFile(workbook, `ganadores_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   // Formatear fecha
@@ -641,6 +718,7 @@ export default function SorteoPage() {
     setParticipants([]);
     setAllParticipants([]);
     setAvailableParticipants([]);
+    setCountdown(60); // Reset countdown
     
     // No limpiamos winners aquí, solo los filtramos en fetchParticipants
     fetchParticipants();
@@ -670,7 +748,7 @@ export default function SorteoPage() {
   if (isFullscreen) {
     return (
       <div ref={containerRef} style={fullscreenStyles}>
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 z-50">
           <button
             onClick={toggleFullscreen}
             className="p-2 bg-purple-500/30 backdrop-blur-md rounded-full hover:bg-purple-500/50 transition-colors border border-purple-300/40"
@@ -1077,8 +1155,13 @@ export default function SorteoPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Lista de Participantes */}
           <div className="bg-white/95 backdrop-blur-md p-6 rounded-lg shadow-lg border border-white/40">
-            <h2 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 border-b pb-2">
+            <h2 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 border-b pb-2 flex items-center gap-2">
               Participantes ({participants.length})
+              {sourceMode === 'filtros' && (
+                <span className="text-sm text-gray-500 font-normal">
+                  (Actualización en {countdown}s)
+                </span>
+              )}
             </h2>
             {loading ? (
               <p className="text-gray-500 text-center py-8">Cargando participantes...</p>
@@ -1264,25 +1347,43 @@ export default function SorteoPage() {
             <div className="bg-white/95 backdrop-blur-md p-6 rounded-lg shadow-lg border border-white/40">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Historial de Ganadores</h2>
-                <button 
-                  onClick={() => setShowHistory(!showHistory)}
-                  className="text-purple-600 hover:text-purple-800 flex items-center transition-colors">
-                  {showHistory ? (
+                <div className="flex gap-2">
+                  {history.length > 0 && (
                     <>
-                      <span>Ocultar</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                      </svg>
-                    </>
-                  ) : (
-                    <>
-                      <span>Mostrar</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
+                      <button 
+                        onClick={exportWinnersToExcel}
+                        className="px-3 py-1 bg-green-100 text-green-700 hover:bg-green-200 rounded-md text-sm font-semibold transition-colors"
+                      >
+                        Exportar Excel
+                      </button>
+                      <button 
+                        onClick={resetWinners}
+                        className="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-md text-sm font-semibold transition-colors"
+                      >
+                        Limpiar Todo
+                      </button>
                     </>
                   )}
-                </button>
+                  <button 
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="text-purple-600 hover:text-purple-800 flex items-center transition-colors">
+                    {showHistory ? (
+                      <>
+                        <span>Ocultar</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                        </svg>
+                      </>
+                    ) : (
+                      <>
+                        <span>Mostrar</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
               
               {showHistory && (
@@ -1314,6 +1415,9 @@ export default function SorteoPage() {
                                 Barrio
                               </th>
                             )}
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                              Acciones
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-purple-200">
@@ -1326,7 +1430,7 @@ export default function SorteoPage() {
                                 {item.winner.nombre}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                {item.winner.cedulaDelArchivo ? item.winner.cedula : '-'}
+                                {item.winner.cedula ? item.winner.cedula : '-'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                 {item.winner.celular || '-'}
@@ -1341,6 +1445,14 @@ export default function SorteoPage() {
                                   {item.winner.barrios || '-'}
                                 </td>
                               )}
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <button
+                                  onClick={() => deleteWinner(item.id, item.winner.cedula)}
+                                  className="text-red-500 hover:text-red-700 font-semibold text-xs"
+                                >
+                                  Eliminar
+                                </button>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
