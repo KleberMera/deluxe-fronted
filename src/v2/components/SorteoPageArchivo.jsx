@@ -705,9 +705,6 @@ export default function SorteoPageArchivo() {
                 SORTEO DE PREMIOS
               </h1>
               <p className="text-pink-100">¡Gira la ruleta y descubre al ganador!</p>
-              <p className="text-yellow-300 text-sm mt-1">
-                Giros: {spinCount}
-              </p>
             </div>
             <div className="w-1/3 flex justify-end">
               <button
@@ -841,8 +838,8 @@ export default function SorteoPageArchivo() {
                         {isAntepenultimate && <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">ANTEPENÚLTIMO</span>} */}
                       </div>
                       <div className="text-sm text-gray-600">
-                        <div>CI: {maskCedula(p.cedula)}</div>
-                        {p.celular && <div>Tel: {maskPhone(p.celular)}</div>}
+                        <div>CI: {p.cedula}</div>
+                        {p.celular && <div>Tel: {p.celular}</div>}
                       </div>
                     </li>
                   );
@@ -1095,10 +1092,10 @@ export default function SorteoPageArchivo() {
                                   {item.winner.nombre}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                  {item.winner.cedula ? maskCedula(item.winner.cedula) : '-'}
+                                  {item.winner.cedula ? item.winner.cedula : '-'}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                  {item.winner.celular ? maskPhone(item.winner.celular) : '-'}
+                                  {item.winner.celular ? item.winner.celular : '-'}
                                 </td>
                                 {history.some(h => h.winner.comentarios !== undefined) && (
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
