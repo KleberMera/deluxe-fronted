@@ -25,20 +25,14 @@ export default function SorteoPageArchivo() {
   const [allParticipants, setAllParticipants] = useState([]);
   const [availableParticipants, setAvailableParticipants] = useState([]);
   const [participants, setParticipants] = useState([]);
-  const [history, setHistory] = useState(() => {
-    const saved = localStorage.getItem('sorteo_history');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [history, setHistory] = useState([]);
   const [winner, setWinner] = useState(null);
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [currentHighlight, setCurrentHighlight] = useState('');
   const spinDuration = 5000;
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false);
-  const [winners, setWinners] = useState(() => {
-    const saved = localStorage.getItem('sorteo_winners');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [winners, setWinners] = useState([]);
   const [showHistory, setShowHistory] = useState(true);
   const [excelFile, setExcelFile] = useState(null);
   const fileInputRef = useRef(null);
@@ -52,14 +46,11 @@ export default function SorteoPageArchivo() {
   // Contador de giros para la lógica especial
   const [spinCount, setSpinCount] = useState(0);
 
-  // Save winners to localStorage
+  // Limpiar persistencia al recargar para iniciar siempre en blanco
   useEffect(() => {
-    localStorage.setItem('sorteo_winners', JSON.stringify(winners));
-  }, [winners]);
-  
-  useEffect(() => {
-    localStorage.setItem('sorteo_history', JSON.stringify(history));
-  }, [history]);
+    localStorage.removeItem('sorteo_winners');
+    localStorage.removeItem('sorteo_history');
+  }, []);
 
   // Función auxiliar para normalizar nombres de columnas
   const normalizeColumnName = (name) => {
@@ -394,6 +385,24 @@ export default function SorteoPageArchivo() {
       setSpinCount(currentSpin - 1); // Revertir contador
       return;
     }
+
+    const drawTimestamp = new Date().toISOString();
+    const winnerWithFilter = {
+      ...selectedWinner,
+      fechaSorteo: drawTimestamp,
+      numeroGiro: currentSpin
+    };
+
+    const newHistoryEntry = {
+      id: Date.now(),
+      winner: selectedWinner,
+      date: drawTimestamp,
+      numeroGiro: currentSpin
+    };
+
+    // Registrar el ganador apenas inicia el giro para que el contador se actualice de inmediato.
+    setWinners(prevWinners => [...prevWinners, winnerWithFilter]);
+    setHistory(prev => [...prev, newHistoryEntry]);
     
     setSpinning(true);
     setWinner(null);
@@ -422,15 +431,6 @@ export default function SorteoPageArchivo() {
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
-        // Animation complete - el ganador ya está seleccionado
-        const winnerWithFilter = {
-          ...selectedWinner,
-          fechaSorteo: new Date().toISOString(),
-          numeroGiro: currentSpin // Guardar el número de giro para referencia
-        };
-        
-        setWinners(prevWinners => [...prevWinners, winnerWithFilter]);
-        
         setAvailableParticipants(prev => 
           prev.filter(p => p.cedula !== selectedWinner.cedula)
         );
@@ -440,15 +440,6 @@ export default function SorteoPageArchivo() {
         );
         
         // NOTA: NO modificamos allParticipants para mantener la lista original intacta
-        
-        const newHistoryEntry = {
-          id: Date.now(),
-          winner: selectedWinner,
-          date: new Date().toISOString(),
-          numeroGiro: currentSpin
-        };
-        
-        setHistory(prev => [...prev, newHistoryEntry]);
         
         setWinner(selectedWinner);
         setShowWinnerAnimation(true);
@@ -564,9 +555,9 @@ export default function SorteoPageArchivo() {
         </div>
 
         <div className="absolute bottom-4 right-4 z-40">
-          <div className="px-4 py-2 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-white shadow-xl">
-            <span className="text-sm uppercase tracking-wide text-white/80">Ganadores</span>
-            <span className="ml-3 text-2xl font-black text-yellow-300">{winners.length}</span>
+          <div className="px-6 py-3 rounded-full bg-black/80 backdrop-blur-md border-2 border-yellow-300/40 text-white shadow-2xl">
+            <span className="text-base uppercase tracking-wider text-white/85 font-bold">Conteo de Giros</span>
+            <span className="ml-4 text-5xl font-black text-yellow-300 leading-none">{winners.length}</span>
           </div>
         </div>
         
@@ -1033,7 +1024,7 @@ export default function SorteoPageArchivo() {
             {/* Historial de Ganadores */}
             <div className="bg-white/95 backdrop-blur-md p-6 rounded-lg shadow-lg border border-white/40">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Historial de Ganadores</h2>
+                <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Historial de Giros</h2>
                 <div className="flex gap-2 flex-wrap">
                   {history.length > 0 && (
                     <>
