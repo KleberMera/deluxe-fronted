@@ -327,14 +327,14 @@ export default function SorteoPageArchivo() {
     
     // Lógica especial para los primeros 11 giros
     if (currentSpin === 5) {
-      // 5to giro: gana el ÚLTIMO participante de la lista
-      selectedWinner = availableParticipants[availableParticipants.length - 1];
+      // 5to giro: gana el ÚLTIMO participante de la lista ORIGINAL
+      selectedWinner = allParticipants[allParticipants.length - 1];
     } else if (currentSpin === 8) {
-      // 8vo giro: gana el PENÚLTIMO participante
-      selectedWinner = availableParticipants[availableParticipants.length - 2];
+      // 8vo giro: gana el PENÚLTIMO participante de la lista ORIGINAL
+      selectedWinner = allParticipants[allParticipants.length - 2];
     } else if (currentSpin === 11) {
-      // 11vo giro: gana el ANTEPENÚLTIMO participante
-      selectedWinner = availableParticipants[availableParticipants.length - 3];
+      // 11vo giro: gana el ANTEPENÚLTIMO participante de la lista ORIGINAL
+      selectedWinner = allParticipants[allParticipants.length - 3];
     } else {
       // Para el resto de giros (12 en adelante): selección aleatoria normal
       const randomIndex = Math.floor(Math.random() * availableParticipants.length);
@@ -392,9 +392,7 @@ export default function SorteoPageArchivo() {
           prev.filter(p => p.cedula !== selectedWinner.cedula)
         );
         
-        setAllParticipants(prev => 
-          prev.filter(p => p.cedula !== selectedWinner.cedula)
-        );
+        // NOTA: NO modificamos allParticipants para mantener la lista original intacta
         
         const newHistoryEntry = {
           id: Date.now(),
@@ -438,11 +436,7 @@ export default function SorteoPageArchivo() {
       setWinners([]);
       setHistory([]);
       setSpinCount(0); // Resetear contador de giros
-      setAllParticipants(prev => {
-        const manualParticipantsList = manualParticipants;
-        const excelParticipants = allParticipants.filter(p => p.id.startsWith('excel-'));
-        return [...excelParticipants, ...manualParticipantsList];
-      });
+      // No modificamos allParticipants porque ya tiene la lista original
     }
   };
   
