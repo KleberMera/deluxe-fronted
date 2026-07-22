@@ -11,6 +11,15 @@ const maskPhone = (phone) => {
   return str.slice(0, 2) + '*'.repeat(str.length - 4) + str.slice(-2);
 };
 
+// Función para enmascarar cédula
+const maskCedula = (cedula) => {
+  if (!cedula) return '';
+  const str = cedula.toString();
+  if (str.length <= 4) return '*'.repeat(str.length);
+  if (str.length <= 6) return str[0] + '*'.repeat(str.length - 2) + str[str.length - 1];
+  return str.slice(0, 2) + '*'.repeat(str.length - 4) + str.slice(-2);
+};
+
 export default function SorteoPageArchivo() {
   // Estado para participantes
   const [allParticipants, setAllParticipants] = useState([]);
@@ -628,10 +637,10 @@ export default function SorteoPageArchivo() {
                   
                   <div className="mt-4 space-y-2 text-gray-700">
                     {winner.cedulaDelArchivo && (
-                      <p>Cédula: {winner.cedula}</p>
+                      <p>Cédula: {maskCedula(winner.cedula)}</p>
                     )}
                     {winner.celular && (
-                      <p>Teléfono: {winner.celular}</p>
+                      <p>Teléfono: {maskPhone(winner.celular)}</p>
                     )}
                     {winner.comentarios !== undefined && (
                       <p>Comentario: {winner.comentarios || 'Sin Comentario'}</p>
@@ -697,14 +706,7 @@ export default function SorteoPageArchivo() {
               </h1>
               <p className="text-pink-100">¡Gira la ruleta y descubre al ganador!</p>
               <p className="text-yellow-300 text-sm mt-1">
-                Giros: {spinCount} | 
-                {spinCount < 5 && <span className="ml-1">Próximo ganador especial: #{spinCount + 1}</span>}
-                {spinCount === 4 && <span className="ml-1 text-green-300">⚡ ¡ÚLTIMO de la lista!</span>}
-                {spinCount === 5 && <span className="ml-1 text-orange-300">⚡ Siguiente: PENÚLTIMO</span>}
-                {spinCount === 7 && <span className="ml-1 text-orange-300">⚡ ¡PENÚLTIMO de la lista!</span>}
-                {spinCount === 8 && <span className="ml-1 text-red-300">⚡ Siguiente: ANTEPENÚLTIMO</span>}
-                {spinCount === 10 && <span className="ml-1 text-red-300">⚡ ¡ANTEPENÚLTIMO de la lista!</span>}
-                {spinCount >= 11 && <span className="ml-1 text-blue-300">🎲 Sorteo aleatorio</span>}
+                Giros: {spinCount}
               </p>
             </div>
             <div className="w-1/3 flex justify-end">
@@ -839,8 +841,8 @@ export default function SorteoPageArchivo() {
                         {isAntepenultimate && <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">ANTEPENÚLTIMO</span>} */}
                       </div>
                       <div className="text-sm text-gray-600">
-                        <div>CI: {p.cedula}</div>
-                        {p.celular && <div>Tel: {p.celular}</div>}
+                        <div>CI: {maskCedula(p.cedula)}</div>
+                        {p.celular && <div>Tel: {maskPhone(p.celular)}</div>}
                       </div>
                     </li>
                   );
@@ -855,21 +857,7 @@ export default function SorteoPageArchivo() {
               <h2 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Ruleta de la Suerte</h2>
 
               {/* Indicador de giro especial */}
-              {spinCount === 4 && (
-                <div className="mb-3 px-4 py-2 bg-yellow-100 border-2 border-yellow-400 rounded-lg text-yellow-800 font-bold animate-pulse">
-                  ⚡ ¡Próximo ganador será el ÚLTIMO de la lista! (Giro #5)
-                </div>
-              )}
-              {spinCount === 7 && (
-                <div className="mb-3 px-4 py-2 bg-orange-100 border-2 border-orange-400 rounded-lg text-orange-800 font-bold animate-pulse">
-                  ⚡ ¡Próximo ganador será el PENÚLTIMO de la lista! (Giro #8)
-                </div>
-              )}
-              {spinCount === 10 && (
-                <div className="mb-3 px-4 py-2 bg-red-100 border-2 border-red-400 rounded-lg text-red-800 font-bold animate-pulse">
-                  ⚡ ¡Próximo ganador será el ANTEPENÚLTIMO de la lista! (Giro #11)
-                </div>
-              )}
+
 
               {participants.length > 0 && (
                 <div className="relative w-full max-w-md aspect-square">
@@ -970,12 +958,12 @@ export default function SorteoPageArchivo() {
                   <div className="text-lg space-y-2 mt-4">
                     {winner.cedulaDelArchivo && (
                       <div>
-                        <span className="font-medium">Cédula:</span> {winner.cedula}
+                        <span className="font-medium">Cédula:</span> {maskCedula(winner.cedula)}
                       </div>
                     )}
                     {winner.celular && (
                       <div>
-                        <span className="font-medium">Teléfono:</span> {winner.celular}
+                        <span className="font-medium">Teléfono:</span> {maskPhone(winner.celular)}
                       </div>
                     )}
                     {winner.comentarios !== undefined && (
@@ -1107,10 +1095,10 @@ export default function SorteoPageArchivo() {
                                   {item.winner.nombre}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                  {item.winner.cedula ? item.winner.cedula : '-'}
+                                  {item.winner.cedula ? maskCedula(item.winner.cedula) : '-'}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                  {item.winner.celular || '-'}
+                                  {item.winner.celular ? maskPhone(item.winner.celular) : '-'}
                                 </td>
                                 {history.some(h => h.winner.comentarios !== undefined) && (
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
