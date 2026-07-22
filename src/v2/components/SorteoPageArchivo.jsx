@@ -153,7 +153,12 @@ export default function SorteoPageArchivo() {
           alert('El archivo no contiene datos válidos. Asegúrate de que tenga al menos la columna: nombre.');
           return;
         }
-
+        
+        if (participantesDelArchivo.length < 11) {
+          alert(`El archivo debe contener al menos 11 participantes válidos. Actualmente tiene ${participantesDelArchivo.length}.`);
+          return;
+        }
+        
         // Resetear contador de giros al cargar nuevo archivo
         setSpinCount(0);
         setAllParticipants(participantesDelArchivo);
@@ -313,9 +318,42 @@ export default function SorteoPageArchivo() {
       p => !winners.some(w => w.cedula === p.cedula)
     );
     
-    setAvailableParticipants(participantesSinGanadores);
+    // Exclude the last three special participants until their special spins
+    let availableForRandom = participantesSinGanadores;
+    if (allParticipants.length >= 3) {
+      const lastIndex = allParticipants.length - 1;
+      const penultimateIndex = allParticipants.length - 2;
+      const antepenultimateIndex = allParticipants.length - 3;
+      
+      const specialCedulas = new Set([
+        allParticipants[lastIndex]?.cedula,
+        allParticipants[penultimateIndex]?.cedula,
+        allParticipants[antepenultimateIndex]?.cedula
+      ]);
+      
+      // Exclude special participants from random selection until their spin
+      if (spinCount < 5) {
+        // Before spin 5: exclude all three special participants
+        availableForRandom = participantesSinGanadores.filter(p => !specialCedulas.has(p.cedula));
+      } else if (spinCount < 8) {
+        // Between spin 5 and 8: exclude the remaining two special participants
+        const remainingSpecialCedulas = new Set([
+          allParticipants[penultimateIndex]?.cedula,
+          allParticipants[antepenultimateIndex]?.cedula
+        ]);
+        availableForRandom = participantesSinGanadores.filter(p => !remainingSpecialCedulas.has(p.cedula));
+      } else if (spinCount < 11) {
+        // Between spin 8 and 11: exclude the last remaining special participant
+        const lastSpecialCedula = allParticipants[antepenultimateIndex]?.cedula;
+        availableForRandom = participantesSinGanadores.filter(p => p.cedula !== lastSpecialCedula);
+      }
+    }
+    
+    setAvailableParticipants(availableForRandom);
+    // El listado debe mostrar todos los participantes que siguen en juego,
+    // incluso los reservados para los giros especiales.
     setParticipants(participantesSinGanadores);
-  }, [winners, allParticipants]);
+  }, [winners, allParticipants, spinCount]);
 
   function startDraw() {
     if (spinning) {
@@ -334,18 +372,18 @@ export default function SorteoPageArchivo() {
     
     let selectedWinner = null;
     
-    // Lógica especial para los primeros 11 giros
-    if (currentSpin === 5) {
+    // Lógica especial para los giros 5, 8, 11
+    if (currentSpin === 5 && allParticipants.length >= 1) {
       // 5to giro: gana el ÚLTIMO participante de la lista ORIGINAL
       selectedWinner = allParticipants[allParticipants.length - 1];
-    } else if (currentSpin === 8) {
+    } else if (currentSpin === 8 && allParticipants.length >= 2) {
       // 8vo giro: gana el PENÚLTIMO participante de la lista ORIGINAL
       selectedWinner = allParticipants[allParticipants.length - 2];
-    } else if (currentSpin === 11) {
+    } else if (currentSpin === 11 && allParticipants.length >= 3) {
       // 11vo giro: gana el ANTEPENÚLTIMO participante de la lista ORIGINAL
       selectedWinner = allParticipants[allParticipants.length - 3];
     } else {
-      // Para el resto de giros (12 en adelante): selección aleatoria normal
+      // Para el resto de giros: selección aleatoria normal de los disponibles
       const randomIndex = Math.floor(Math.random() * availableParticipants.length);
       selectedWinner = availableParticipants[randomIndex];
     }
