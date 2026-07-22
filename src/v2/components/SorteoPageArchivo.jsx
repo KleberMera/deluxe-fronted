@@ -39,6 +39,9 @@ export default function SorteoPageArchivo() {
   const [showManualParticipantsList, setShowManualParticipantsList] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef(null);
+  
+  // Contador de giros para la lógica especial
+  const [spinCount, setSpinCount] = useState(0);
 
   // Save winners to localStorage
   useEffect(() => {
@@ -142,6 +145,8 @@ export default function SorteoPageArchivo() {
           return;
         }
 
+        // Resetear contador de giros al cargar nuevo archivo
+        setSpinCount(0);
         setAllParticipants(participantesDelArchivo);
         setAvailableParticipants(participantesDelArchivo);
         setParticipants(participantesDelArchivo);
@@ -165,6 +170,7 @@ export default function SorteoPageArchivo() {
     setWinners([]);
     setHistory([]);
     setManualParticipants([]);
+    setSpinCount(0);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -313,14 +319,41 @@ export default function SorteoPageArchivo() {
       return;
     }
     
+    // Incrementar el contador de giros
+    const currentSpin = spinCount + 1;
+    setSpinCount(currentSpin);
+    
+    let selectedWinner = null;
+    
+    // Lógica especial para los primeros 11 giros
+    if (currentSpin === 5) {
+      // 5to giro: gana el ÚLTIMO participante de la lista
+      selectedWinner = availableParticipants[availableParticipants.length - 1];
+    } else if (currentSpin === 8) {
+      // 8vo giro: gana el PENÚLTIMO participante
+      selectedWinner = availableParticipants[availableParticipants.length - 2];
+    } else if (currentSpin === 11) {
+      // 11vo giro: gana el ANTEPENÚLTIMO participante
+      selectedWinner = availableParticipants[availableParticipants.length - 3];
+    } else {
+      // Para el resto de giros (12 en adelante): selección aleatoria normal
+      const randomIndex = Math.floor(Math.random() * availableParticipants.length);
+      selectedWinner = availableParticipants[randomIndex];
+    }
+    
+    // Verificar que el ganador seleccionado existe
+    if (!selectedWinner) {
+      alert('No se pudo seleccionar un ganador. Verifica que haya suficientes participantes.');
+      setSpinCount(currentSpin - 1); // Revertir contador
+      return;
+    }
+    
     setSpinning(true);
     setWinner(null);
     setShowWinnerAnimation(false);
     setCurrentHighlight('');
     
-    const winnerIndex = Math.floor(Math.random() * availableParticipants.length);
-    const selectedWinner = availableParticipants[winnerIndex];
-    
+    // Calcular la rotación para la ruleta
     const sliceDegree = 360 / allParticipants.length;
     const winnerPosition = allParticipants.findIndex(p => p.cedula === selectedWinner.cedula);
     const targetDegree = 360 - (sliceDegree * winnerPosition) - (sliceDegree / 2);
@@ -342,13 +375,11 @@ export default function SorteoPageArchivo() {
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
-        const normalizedRotation = totalRotation % 360;
-        const winnerIndex = Math.floor(normalizedRotation / sliceDegree) % allParticipants.length;
-        const selectedWinner = allParticipants[allParticipants.length - 1 - winnerIndex];
-        
+        // Animation complete - el ganador ya está seleccionado
         const winnerWithFilter = {
           ...selectedWinner,
-          fechaSorteo: new Date().toISOString()
+          fechaSorteo: new Date().toISOString(),
+          numeroGiro: currentSpin // Guardar el número de giro para referencia
         };
         
         setWinners(prevWinners => [...prevWinners, winnerWithFilter]);
@@ -368,7 +399,8 @@ export default function SorteoPageArchivo() {
         const newHistoryEntry = {
           id: Date.now(),
           winner: selectedWinner,
-          date: new Date().toISOString()
+          date: new Date().toISOString(),
+          numeroGiro: currentSpin
         };
         
         setHistory(prev => [...prev, newHistoryEntry]);
@@ -405,6 +437,7 @@ export default function SorteoPageArchivo() {
     if (window.confirm('¿Estás seguro de que deseas reiniciar la lista de ganadores?')) {
       setWinners([]);
       setHistory([]);
+      setSpinCount(0); // Resetear contador de giros
       setAllParticipants(prev => {
         const manualParticipantsList = manualParticipants;
         const excelParticipants = allParticipants.filter(p => p.id.startsWith('excel-'));
@@ -417,6 +450,7 @@ export default function SorteoPageArchivo() {
     if (window.confirm('¿Estás seguro de que deseas eliminar este ganador?')) {
       setHistory(prev => prev.filter(item => item.id !== historyId));
       setWinners(prev => prev.filter(w => w.cedula !== winnerCedula));
+      // No resetear el contador de giros al eliminar un ganador
     }
   };
   
@@ -427,6 +461,7 @@ export default function SorteoPageArchivo() {
     }
     
     const data = history.map(item => ({
+      'N° Giro': item.numeroGiro || '-',
       'Fecha y Hora': formatDate(item.date),
       'Ganador': item.winner.nombre,
       'Cédula': item.winner.cedula || '-',
@@ -473,7 +508,7 @@ export default function SorteoPageArchivo() {
     backgroundSize: 'cover'
   } : {};
 
-  // Vista de pantalla completa
+  // Vista de pantalla completa (similar pero con la nueva lógica)
   if (isFullscreen) {
     return (
       <div ref={containerRef} style={fullscreenStyles}>
@@ -667,6 +702,16 @@ export default function SorteoPageArchivo() {
                 SORTEO DE PREMIOS
               </h1>
               <p className="text-pink-100">¡Gira la ruleta y descubre al ganador!</p>
+              <p className="text-yellow-300 text-sm mt-1">
+                Giros: {spinCount} | 
+                {spinCount < 5 && <span className="ml-1">Próximo ganador especial: #{spinCount + 1}</span>}
+                {spinCount === 4 && <span className="ml-1 text-green-300">⚡ ¡ÚLTIMO de la lista!</span>}
+                {spinCount === 5 && <span className="ml-1 text-orange-300">⚡ Siguiente: PENÚLTIMO</span>}
+                {spinCount === 7 && <span className="ml-1 text-orange-300">⚡ ¡PENÚLTIMO de la lista!</span>}
+                {spinCount === 8 && <span className="ml-1 text-red-300">⚡ Siguiente: ANTEPENÚLTIMO</span>}
+                {spinCount === 10 && <span className="ml-1 text-red-300">⚡ ¡ANTEPENÚLTIMO de la lista!</span>}
+                {spinCount >= 11 && <span className="ml-1 text-blue-300">🎲 Sorteo aleatorio</span>}
+              </p>
             </div>
             <div className="w-1/3 flex justify-end">
               <button
@@ -780,15 +825,32 @@ export default function SorteoPageArchivo() {
               </div>
             ) : (
               <ul className="divide-y max-h-[600px] overflow-y-auto">
-                {participants.map((p, index) => (
-                  <li key={index} className="py-2 px-2 hover:bg-gray-50 rounded">
-                    <div className="font-semibold">{p.nombre}</div>
-                    <div className="text-sm text-gray-600">
-                      <div>CI: {p.cedula}</div>
-                      {p.celular && <div>Tel: {p.celular}</div>}
-                    </div>
-                  </li>
-                ))}
+                {participants.map((p, index) => {
+                  // Marcar los últimos 3 participantes
+                  // const isLast = index === participants.length - 1;
+                  // const isPenultimate = index === participants.length - 2;
+                  // const isAntepenultimate = index === participants.length - 3;
+                  // let highlightClass = '';
+                  // if (isLast) highlightClass = 'bg-yellow-100 border-l-4 border-yellow-500';
+                  // else if (isPenultimate) highlightClass = 'bg-orange-50 border-l-4 border-orange-400';
+                  // else if (isAntepenultimate) highlightClass = 'bg-red-50 border-l-4 border-red-400';
+                  
+                  return (
+                       <li key={index} className={`py-2 px-2 hover:bg-gray-50 rounded `}>
+                     {/* <li key={index} className={`py-2 px-2 hover:bg-gray-50 rounded ${highlightClass}`}> */}
+                      <div className="font-semibold flex items-center gap-2">
+                        {p.nombre}
+                        {/* {isLast && <span className="text-xs bg-yellow-500 text-white px-2 py-0.5 rounded-full">ÚLTIMO</span>}
+                        {isPenultimate && <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">PENÚLTIMO</span>}
+                        {isAntepenultimate && <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">ANTEPENÚLTIMO</span>} */}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <div>CI: {p.cedula}</div>
+                        {p.celular && <div>Tel: {p.celular}</div>}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -797,6 +859,23 @@ export default function SorteoPageArchivo() {
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white/95 backdrop-blur-md text-gray-800 p-5 rounded-lg shadow-lg border border-white/40 flex flex-col items-center relative">
               <h2 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Ruleta de la Suerte</h2>
+
+              {/* Indicador de giro especial */}
+              {spinCount === 4 && (
+                <div className="mb-3 px-4 py-2 bg-yellow-100 border-2 border-yellow-400 rounded-lg text-yellow-800 font-bold animate-pulse">
+                  ⚡ ¡Próximo ganador será el ÚLTIMO de la lista! (Giro #5)
+                </div>
+              )}
+              {spinCount === 7 && (
+                <div className="mb-3 px-4 py-2 bg-orange-100 border-2 border-orange-400 rounded-lg text-orange-800 font-bold animate-pulse">
+                  ⚡ ¡Próximo ganador será el PENÚLTIMO de la lista! (Giro #8)
+                </div>
+              )}
+              {spinCount === 10 && (
+                <div className="mb-3 px-4 py-2 bg-red-100 border-2 border-red-400 rounded-lg text-red-800 font-bold animate-pulse">
+                  ⚡ ¡Próximo ganador será el ANTEPENÚLTIMO de la lista! (Giro #11)
+                </div>
+              )}
 
               {participants.length > 0 && (
                 <div className="relative w-full max-w-md aspect-square">
@@ -985,6 +1064,9 @@ export default function SorteoPageArchivo() {
                         <thead className="bg-purple-50/50">
                           <tr>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                              N° Giro
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
                               Fecha y Hora
                             </th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
@@ -1012,40 +1094,51 @@ export default function SorteoPageArchivo() {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-purple-200">
-                          {history.map((item) => (
-                            <tr key={item.id} className={history.indexOf(item) % 2 === 0 ? 'bg-white' : 'bg-purple-50/30'}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {formatDate(item.date)}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {item.winner.nombre}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                {item.winner.cedula ? item.winner.cedula : '-'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                {item.winner.celular || '-'}
-                              </td>
-                              {history.some(h => h.winner.comentarios !== undefined) && (
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                  {item.winner.comentarios || '-'}
+                          {history.map((item) => {
+                            // Colores especiales para los primeros 11 giros
+                            let rowClass = '';
+                            if (item.numeroGiro === 5) rowClass = 'bg-yellow-50';
+                            else if (item.numeroGiro === 8) rowClass = 'bg-orange-50';
+                            else if (item.numeroGiro === 11) rowClass = 'bg-red-50';
+                            
+                            return (
+                              <tr key={item.id} className={rowClass || (history.indexOf(item) % 2 === 0 ? 'bg-white' : 'bg-purple-50/30')}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                                  #{item.numeroGiro || '-'}
                                 </td>
-                              )}
-                              {history.some(h => h.winner.barrios !== undefined) && (
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                  {item.winner.barrios || '-'}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {formatDate(item.date)}
                                 </td>
-                              )}
-                              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                <button
-                                  onClick={() => deleteWinner(item.id, item.winner.cedula)}
-                                  className="text-red-500 hover:text-red-700 font-semibold text-xs"
-                                >
-                                  Eliminar
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {item.winner.nombre}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                  {item.winner.cedula ? item.winner.cedula : '-'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                  {item.winner.celular || '-'}
+                                </td>
+                                {history.some(h => h.winner.comentarios !== undefined) && (
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    {item.winner.comentarios || '-'}
+                                  </td>
+                                )}
+                                {history.some(h => h.winner.barrios !== undefined) && (
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    {item.winner.barrios || '-'}
+                                  </td>
+                                )}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                  <button
+                                    onClick={() => deleteWinner(item.id, item.winner.cedula)}
+                                    className="text-red-500 hover:text-red-700 font-semibold text-xs"
+                                  >
+                                    Eliminar
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
