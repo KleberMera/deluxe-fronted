@@ -1,0 +1,1522 @@
+
+import React, { useState, useEffect, useRef } from "react";
+import axios from 'axios';
+import { Fullscreen, FullscreenExit, CloudUpload, Facebook } from '@mui/icons-material';
+import * as XLSX from 'xlsx';
+import environments from "../environments/environment";
+
+// Función para enmascarar teléfono
+const maskPhone = (phone) => {
+  if (!phone) return '';
+  const str = phone.toString();
+  if (str.length <= 4) return '*'.repeat(str.length);
+  if (str.length <= 6) return str[0] + '*'.repeat(str.length - 2) + str[str.length - 1];
+  // Mostrar solo los dos primeros y dos últimos dígitos
+  return str.slice(0, 2) + '*'.repeat(str.length - 4) + str.slice(-2);
+};
+
+export default function SorteoPageArchivo() {
+  // Load from localStorage on initial render
+  const [allParticipants, setAllParticipants] = useState([]); // Lista completa de participantes
+  const [availableParticipants, setAvailableParticipants] = useState([]); // Participantes que aún no han ganado
+  const [participants, setParticipants] = useState([]); // Lista de participantes actual
+  const [history, setHistory] = useState(() => {
+    const saved = localStorage.getItem('sorteo_history');
+    return saved ? JSON.parse(saved) : [];
+  }); // Historial de ganadores
+  const [winner, setWinner] = useState(null);
+  const [spinning, setSpinning] = useState(false);
+  const [rotation, setRotation] = useState(0);
+  const [currentHighlight, setCurrentHighlight] = useState('');
+  const spinDuration = 5000; // 5 seconds
+  const [showWinnerAnimation, setShowWinnerAnimation] = useState(false);
+  const [winners, setWinners] = useState(() => {
+    const saved = localStorage.getItem('sorteo_winners');
+    return saved ? JSON.parse(saved) : [];
+  }); // Lista de ganadores
+  const [showHistory, setShowHistory] = useState(true); // Mostrar el historial por defecto
+  const [sourceMode, setSourceMode] = useState('filtros'); // 'filtros' o 'archivo'
+  const [excelFile, setExcelFile] = useState(null);
+  const fileInputRef = useRef(null);
+  const [manualParticipants, setManualParticipants] = useState([]); // Participantes agregados manualmente
+  const [showAddParticipantModal, setShowAddParticipantModal] = useState(false);
+  const [newParticipantName, setNewParticipantName] = useState('');
+  const [showManualParticipantsList, setShowManualParticipantsList] = useState(false);
+  const [countdown, setCountdown] = useState(60); // Countdown in seconds for auto-refresh
+  
+  // Save winners to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('sorteo_winners', JSON.stringify(winners));
+  }, [winners]);
+  
+  // Save history to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('sorteo_history', JSON.stringify(history));
+  }, [history]);
+  
+  // Función auxiliar para normalizar nombres de columnas (case-insensitive)
+  const normalizeColumnName = (name) => {
+    if (!name) return '';
+    return name.toString().trim().toLowerCase();
+  };
+
+  // Función auxiliar para encontrar el valor de una columna con variaciones de nombre
+  const getColumnValue = (row, ...possibleNames) => {
+    const normalizedPossibleNames = possibleNames.map(name => normalizeColumnName(name));
+    const rowKeys = Object.keys(row).map(key => normalizeColumnName(key));
+    
+    for (const possibleName of normalizedPossibleNames) {
+      const keyIndex = rowKeys.indexOf(possibleName);
+      if (keyIndex !== -1) {
+        const actualKey = Object.keys(row)[keyIndex];
+        const value = row[actualKey];
+        return value ? value.toString().trim() : '';
+      }
+    }
+    return '';
+  };
+
+  // Función auxiliar para detectar si una columna existe en el Excel
+  const columnExists = (rows, ...possibleNames) => {
+    if (rows.length === 0) return false;
+    const normalizedPossibleNames = possibleNames.map(name => normalizeColumnName(name));
+    const rowKeys = Object.keys(rows[0]).map(key => normalizeColumnName(key));
+    return normalizedPossibleNames.some(name => rowKeys.includes(name));
+  };
+
+  // Función para formatear la fecha a YYYY-MM-DD en la zona horaria local
+  const formatLocalDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Función para obtener la fecha actual en formato YYYY-MM-DD
+  const getTodayDate = () => {
+    return formatLocalDate(new Date());
+  };
+
+  const [fechaInicio, setFechaInicio] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 6);
+    return formatLocalDate(date);
+  });
+  const [fechaFin, setFechaFin] = useState(getTodayDate());
+  const [registradores, setRegistradores] = useState([]);
+  const [selectedTipoRegistrador, setSelectedTipoRegistrador] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef(null);
+
+  // Función para parsear archivo Excel con soporte dinámico de columnas
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(worksheet);
+
+        // Detectar qué columnas están presentes
+        const hasCedulaColumn = columnExists(rows, 'cedula', 'cédula');
+        const hasCelularColumn = columnExists(rows, 'celular', 'telefono');
+        const hasComentariosColumn = columnExists(rows, 'comentarios', 'comentario');
+        const hasUrlsColumn = columnExists(rows, 'urls', 'url', 'perfil');
+        const hasBarriosColumn = columnExists(rows, 'barrios', 'barrio', 'localidad');
+
+        // Validar y mapear datos del Excel
+        const participantesDelArchivo = rows
+          .map((row, index) => {
+            // Obtener datos usando la función auxiliar
+            const nombre = getColumnValue(row, 'nombre', 'nombres', 'name');
+
+            if (!nombre) {
+              console.warn(`Fila ${index + 1} no tiene nombre`);
+              return null;
+            }
+
+            // Obtener cédula si existe la columna
+            const cedulaDelArchivo = hasCedulaColumn ? getColumnValue(row, 'cedula', 'cédula') : '';
+            const cedula = cedulaDelArchivo || `SN-${index}`;
+
+            const participant = {
+              id: `excel-${index}`,
+              nombre,
+              cedula,
+              cedulaDelArchivo: !!cedulaDelArchivo, // Flag indicando si la cédula fue proporcionada
+              fecha_registro: new Date().toISOString(),
+              tipo_registrador: 'Archivo',
+              contador: 1,
+              filtroActual: 'archivo',
+              sourceMode: 'archivo'
+            };
+
+            // Agregar campos opcionales si existen
+            if (hasCelularColumn) {
+              participant.celular = getColumnValue(row, 'celular', 'telefono');
+            }
+            if (hasComentariosColumn) {
+              participant.comentarios = getColumnValue(row, 'comentarios', 'comentario');
+            }
+            if (hasUrlsColumn) {
+              participant.urls = getColumnValue(row, 'urls', 'url', 'perfil');
+            }
+            if (hasBarriosColumn) {
+              participant.barrios = getColumnValue(row, 'barrios', 'barrio', 'localidad');
+            }
+
+            return participant;
+          })
+          .filter(p => p !== null);
+
+        if (participantesDelArchivo.length === 0) {
+          alert('El archivo no contiene datos válidos. Asegúrate de que tenga al menos la columna: nombre.');
+          return;
+        }
+
+        setAllParticipants(participantesDelArchivo);
+        setAvailableParticipants(participantesDelArchivo);
+        setParticipants(participantesDelArchivo);
+        setExcelFile(file);
+        setSourceMode('archivo');
+        setManualParticipants([]); // Limpiar participantes manuales al cargar nuevo archivo
+        setLoading(false);
+        alert(`Se cargaron ${participantesDelArchivo.length} participantes del archivo`);
+      } catch (error) {
+        console.error('Error al procesar el archivo Excel:', error);
+        alert('Error al procesar el archivo. Asegúrate de que sea un archivo Excel válido.');
+        setLoading(false);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // Función para limpiar la selección de archivo
+  const handleClearFile = () => {
+    setExcelFile(null);
+    setAllParticipants([]);
+    setAvailableParticipants([]);
+    setParticipants([]);
+    setWinners([]);
+    setHistory([]);
+    setSourceMode('filtros');
+    setManualParticipants([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Función para agregar participante manualmente
+  const handleAddManualParticipant = () => {
+    if (!newParticipantName.trim()) {
+      alert('Por favor ingresa un nombre');
+      return;
+    }
+
+    const newParticipant = {
+      id: `manual-${Date.now()}`,
+      nombre: newParticipantName.trim(),
+      cedula: `SN-manual-${Date.now()}`,
+      celular: '',
+      cedulaDelArchivo: false, // Los participantes manuales no tienen cédula del archivo
+      fecha_registro: new Date().toISOString(),
+      tipo_registrador: 'Manual',
+      contador: 1,
+      filtroActual: 'manual',
+      sourceMode: 'archivo'
+    };
+
+    setManualParticipants(prev => [...prev, newParticipant]);
+    setNewParticipantName('');
+    setShowAddParticipantModal(false);
+
+    // Actualizar la lista combinada de participantes
+    const allCombined = [...allParticipants, newParticipant];
+    
+    // Filtrar excluir ganadores previos
+    const cedulasGanadoras = new Set(winners.map(w => w.cedula));
+    const participantesSinGanadores = allCombined.filter(
+      p => !cedulasGanadoras.has(p.cedula)
+    );
+    
+    setAllParticipants(allCombined);
+    setAvailableParticipants(participantesSinGanadores);
+    setParticipants(participantesSinGanadores);
+  };
+
+  // Función para eliminar participante manual
+  const handleRemoveManualParticipant = (participantId) => {
+    setManualParticipants(prev => prev.filter(p => p.id !== participantId));
+    
+    // Actualizar la lista combinada
+    const updated = allParticipants.filter(p => p.id !== participantId);
+    const cedulasGanadoras = new Set(winners.map(w => w.cedula));
+    const participantesSinGanadores = updated.filter(
+      p => !cedulasGanadoras.has(p.cedula)
+    );
+    
+    setAllParticipants(updated);
+    setAvailableParticipants(participantesSinGanadores);
+    setParticipants(participantesSinGanadores);
+  };
+
+  // Función para activar/desactivar pantalla completa
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current?.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.error(`Error with fullscreen: ${err.message}`);
+    }
+  };
+
+  // Escuchar cambios en el estado de pantalla completa
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Permitir iniciar el sorteo con Enter en pantalla completa
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Enter' && !event.repeat) {
+        event.preventDefault();
+        startDraw();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFullscreen, startDraw]);
+
+
+  // Colores vivos para la ruleta
+  const colors = [
+    "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
+    "#FF9F40", "#8AC926", "#1982C4", "#6A4C93", "#F15BB5",
+    "#FF5733", "#33FF57", "#5733FF", "#33FFEC", "#EC33FF",
+    "#FFEC33", "#FF33A8", "#33A8FF", "#A8FF33", "#A833FF"
+  ];
+
+  // Límite visual de segmentos en la ruleta
+  const MAX_VISUAL_SEGMENTS = 300;
+
+  // Participantes visuales para la ruleta (solo para mostrar, no afecta la lógica del sorteo)
+  let visualParticipants = participants;
+  let visualMap = null;
+  if (participants.length > MAX_VISUAL_SEGMENTS) {
+    // Selecciona MAX_VISUAL_SEGMENTS participantes distribuidos uniformemente para mostrar
+    const step = participants.length / MAX_VISUAL_SEGMENTS;
+    visualParticipants = [];
+    visualMap = [];
+    for (let i = 0; i < MAX_VISUAL_SEGMENTS; i++) {
+      const idx = Math.floor(i * step);
+      visualParticipants.push(participants[idx]);
+      visualMap.push(idx); // Mapea el segmento visual al índice real
+    }
+  }
+
+  // Estilos para la transición suave de la ruleta
+  const wheelStyle = {
+    transform: `rotate(${rotation}deg)`,
+    transition: spinning ? 'none' : 'transform 0.1s ease-out',
+    backgroundColor: 'white'
+  };
+
+  // Cargar tipos de registradores
+  const fetchRegistradores = async () => {
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || environments.apiUrl;
+      const response = await axios.get(`${API_URL}/registrador/activos-con-tipo`);
+      
+      if (response.data.success) {
+        const tiposUnicos = [];
+        const tiposVistos = new Set();
+        
+        response.data.data.forEach(registrador => {
+          if (!tiposVistos.has(registrador.id_tipo_registrador)) {
+            tiposVistos.add(registrador.id_tipo_registrador);
+            tiposUnicos.push({
+              id: registrador.id_tipo_registrador,
+              nombre: registrador.nombre_tipo,
+              descripcion: registrador.tipo_descripcion
+            });
+          }
+        });
+        
+        setRegistradores(tiposUnicos);
+        if (tiposUnicos.length > 0 && !selectedTipoRegistrador) {
+          setSelectedTipoRegistrador(tiposUnicos[0].id.toString());
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar registradores:', error);
+    }
+  };
+
+  // Cargar participantes con filtros
+  const fetchParticipants = async () => {
+    setLoading(true);
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || environments.apiUrl;
+      const response = await axios.get(`${API_URL}/usuarios-otros`);
+      
+      if (response.data.success) {
+        // Formatear fechas para comparación
+        const fechaInicioDate = new Date(fechaInicio);
+        fechaInicioDate.setUTCHours(0, 0, 0, 0);
+        
+        const fechaFinDate = new Date(fechaFin);
+        fechaFinDate.setUTCHours(23, 59, 59, 999);
+        
+        // Filtrar y mapear en un solo paso
+        const participantesFormateados = response.data.data
+          .filter(participante => {
+            if (!participante.fecha_registro) return false;
+            
+            // Filtrar por fecha
+            const fechaRegistro = new Date(participante.fecha_registro);
+            const fechaRegistroAjustada = new Date(fechaRegistro.getTime() - (fechaRegistro.getTimezoneOffset() * 60000));
+            const cumpleFecha = fechaRegistroAjustada >= fechaInicioDate && 
+                              fechaRegistroAjustada <= fechaFinDate;
+            
+            // Filtrar por tipo de registrador
+            const tipoRegistradorId = participante.id_tipo_registrador_snapshot?.toString();
+            const cumpleTipo = !selectedTipoRegistrador || tipoRegistradorId === selectedTipoRegistrador;
+            
+            return cumpleFecha && cumpleTipo;
+          })
+          .map(p => ({
+            id: p.id,
+            nombre: `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Sin nombre',
+            cedula: p.id_card,
+            celular: p.phone,
+            fecha_registro: p.fecha_registro,
+            tipo_registrador: p.nombre_tipo_registrador,
+            contador: 1,
+            // Añadir información del filtro actual
+            filtroActual: `${fechaInicio}-${fechaFin}-${selectedTipoRegistrador}`
+          }));
+        
+        // Actualizar el estado con los nuevos participantes
+        setAllParticipants(participantesFormateados);
+        
+        // Filtrar para excluir a TODOS los ganadores previos, independientemente del filtro
+        const cedulasGanadoras = new Set(winners.map(w => w.cedula));
+        const participantesSinGanadores = participantesFormateados.filter(
+          p => !cedulasGanadoras.has(p.cedula)
+        );
+        
+        // Actualizar la lista de participantes disponibles
+        setAvailableParticipants(participantesSinGanadores);
+        setParticipants(participantesSinGanadores);
+      }
+
+      // Data is already processed in participantesFiltrados and participantesFormateados
+    } catch (error) {
+      console.error("Error cargando participantes:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cargar registradores cuando se cambia a modo filtros
+  useEffect(() => {
+    if (sourceMode === 'filtros' && registradores.length === 0) {
+      fetchRegistradores();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceMode]);
+
+  // Cargar datos iniciales al cambiar filtros
+  useEffect(() => {
+    if (sourceMode === 'archivo') return;
+
+    const loadData = async () => {
+      // Guardar el estado de carga actual
+      const wasLoading = loading;
+      if (!wasLoading) setLoading(true);
+      
+      try {
+        await fetchRegistradores();
+        await fetchParticipants();
+      } finally {
+        if (!wasLoading) setLoading(false);
+      }
+    };
+    
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fechaInicio, fechaFin, selectedTipoRegistrador, sourceMode]);
+  
+  // Auto-refresh every minute when in filtros mode
+  useEffect(() => {
+    if (sourceMode !== 'filtros') return;
+    
+    const interval = setInterval(() => {
+      fetchRegistradores();
+      fetchParticipants();
+      setCountdown(60); // Reset countdown after refresh
+    }, 60000); // 60000 ms = 1 minute
+    
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => prev > 0 ? prev - 1 : 60);
+    }, 1000);
+    
+    return () => {
+      clearInterval(interval);
+      clearInterval(countdownInterval);
+    };
+  }, [sourceMode, selectedTipoRegistrador]); // Add selectedTipoRegistrador to dependencies to ensure it uses current value
+
+  // Actualizar participantes disponibles cuando cambia la lista de ganadores o participantes
+  useEffect(() => {
+    if (allParticipants.length === 0) return;
+    
+    // Filtrar participantes que no estén en la lista de ganadores
+    const participantesSinGanadores = allParticipants.filter(
+      p => !winners.some(w => w.cedula === p.cedula)
+    );
+    
+    // Actualizar la lista de participantes disponibles
+    setAvailableParticipants(participantesSinGanadores);
+    setParticipants(participantesSinGanadores);
+    
+    // Si no hay más participantes disponibles, mostrar mensaje
+    if (participantesSinGanadores.length === 0 && allParticipants.length > 0) {
+      console.log('No hay más participantes disponibles');
+    }
+  }, [winners, allParticipants]);
+
+  function startDraw() {
+    if (spinning) {
+      alert('La ruleta ya está girando');
+      return;
+    }
+    
+    if (availableParticipants.length === 0) {
+      alert('No hay participantes disponibles para el sorteo. Por favor, verifica los filtros.');
+      return;
+    }
+    
+    setSpinning(true);
+    setWinner(null);
+    setShowWinnerAnimation(false);
+    setCurrentHighlight('');
+    
+    // Seleccionar un ganador aleatorio de los participantes disponibles
+    const winnerIndex = Math.floor(Math.random() * availableParticipants.length);
+    const selectedWinner = availableParticipants[winnerIndex];
+    
+    // Calcular la rotación necesaria para que la flecha apunte al ganador
+    const sliceDegree = 360 / allParticipants.length;
+    const winnerPosition = allParticipants.findIndex(p => p.cedula === selectedWinner.cedula);
+    const targetDegree = 360 - (sliceDegree * winnerPosition) - (sliceDegree / 2);
+    
+    // Rotación total = vueltas completas + posición del ganador
+    const targetRotation = (360 * 10) + targetDegree;
+    
+    // Animation variables
+    const startTime = Date.now();
+    const startRotation = rotation;
+    const totalRotation = startRotation + targetRotation;
+    
+    // Animation function
+    const animate = () => {
+      const now = Date.now();
+      const progress = Math.min((now - startTime) / spinDuration, 1);
+      const easeOutProgress = 1 - Math.pow(1 - progress, 3); // Ease-out effect
+      const currentRotation = startRotation + (totalRotation - startRotation) * easeOutProgress;
+      
+      setRotation(currentRotation);
+      updateHighlight(currentRotation);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Animation complete
+        const sliceDegree = 360 / allParticipants.length;
+        const normalizedRotation = totalRotation % 360;
+        const winnerIndex = Math.floor(normalizedRotation / sliceDegree) % allParticipants.length;
+        const selectedWinner = allParticipants[allParticipants.length - 1 - winnerIndex];
+        
+        // Add the winner to the winners list with filter info
+        const winnerWithFilter = {
+          ...selectedWinner,
+          filtroId: `${selectedWinner.cedula}-${fechaInicio}-${fechaFin}-${selectedTipoRegistrador}`,
+          fechaSorteo: new Date().toISOString(),
+          // Almacenar el filtro actual para referencia
+          filtroActual: selectedWinner.filtroActual
+        };
+        
+        // Actualizar la lista de ganadores
+        setWinners(prevWinners => [...prevWinners, winnerWithFilter]);
+        
+        // Actualizar las listas de participantes para que el ganador no aparezca más
+        setAvailableParticipants(prev => 
+          prev.filter(p => p.cedula !== selectedWinner.cedula)
+        );
+        
+        setParticipants(prev => 
+          prev.filter(p => p.cedula !== selectedWinner.cedula)
+        );
+        
+        // También actualizar allParticipants para mantener la consistencia
+        setAllParticipants(prev => 
+          prev.filter(p => p.cedula !== selectedWinner.cedula)
+        );
+        
+        // Create a new history entry with unique ID
+        const newHistoryEntry = {
+          id: Date.now(),
+          winner: selectedWinner,
+          date: new Date().toISOString()
+        };
+        
+        // Update state with the new history entry
+        setHistory(prev => [...prev, newHistoryEntry].filter((entry, index, self) => 
+          index === self.findIndex(t => t.id === entry.id)
+        ));
+        
+        setWinner(selectedWinner);
+        setShowWinnerAnimation(true);
+        setSpinning(false);
+      }
+    };
+    
+    // Start the animation
+    requestAnimationFrame(animate);
+  }
+
+  // Actualizar el resaltado según la rotación actual (usando visualParticipants si aplica)
+  const updateHighlight = (angle) => {
+    if (participants.length === 0) return;
+    const useVisual = participants.length > MAX_VISUAL_SEGMENTS;
+    const arr = useVisual ? visualParticipants : participants;
+    const sliceDegree = 360 / arr.length;
+    const normalizedAngle = ((angle % 360) + 360) % 360; // Asegurar ángulo entre 0 y 360
+    const index = Math.floor(normalizedAngle / sliceDegree);
+    const currentIndex = (arr.length - 1 - index) % arr.length;
+    setCurrentHighlight(arr[currentIndex]?.nombre || '');
+  };
+  
+  // Para no mostrar nombres largos en la ruleta
+  const shortenName = (name) => {
+    if (!name) return '';
+    if (name.length > 15) {
+      return name.substring(0, 13) + "...";
+    }
+    return name;
+  };
+
+  // Reiniciar el sorteo (clear all winners)
+  const resetWinners = () => {
+    if (window.confirm('¿Estás seguro de que deseas reiniciar la lista de ganadores? Esto permitirá que todos los participantes puedan volver a ganar.')) {
+      setWinners([]);
+      setHistory([]);
+      // Recargar los participantes para asegurar que todos estén disponibles
+      fetchParticipants();
+    }
+  };
+  
+  // Delete individual winner
+  const deleteWinner = (historyId, winnerCedula) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este ganador?')) {
+      // Remove from history
+      setHistory(prev => prev.filter(item => item.id !== historyId));
+      // Remove from winners
+      setWinners(prev => prev.filter(w => w.cedula !== winnerCedula));
+      // Refresh participants to make them available again
+      fetchParticipants();
+    }
+  };
+  
+  // Export winners to Excel
+  const exportWinnersToExcel = () => {
+    if (history.length === 0) {
+      alert('No hay ganadores para exportar');
+      return;
+    }
+    
+    // Prepare data for Excel
+    const data = history.map(item => ({
+      'Fecha y Hora': formatDate(item.date),
+      'Ganador': item.winner.nombre,
+      'Cédula': item.winner.cedula || '-',
+      'Teléfono': item.winner.celular || '-',
+      'Comentario': item.winner.comentarios || '-',
+      'Barrio': item.winner.barrios || '-'
+    }));
+    
+    // Create worksheet and workbook
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ganadores');
+    
+    // Download the Excel file
+    XLSX.writeFile(workbook, `ganadores_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  // Formatear fecha
+  const formatDate = (dateString) => {
+    const options = { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    };
+    return new Date(dateString).toLocaleString('es-ES', options);
+  };
+
+  // Manejadores de cambios
+  const handleFechaInicioChange = (e) => {
+    setFechaInicio(e.target.value);
+  };
+
+  const handleFechaFinChange = (e) => {
+    setFechaFin(e.target.value);
+  };
+
+  const handleTipoRegistradorChange = (e) => {
+    setSelectedTipoRegistrador(e.target.value);
+  };
+
+  // Función para aplicar el filtro
+  const aplicarFiltro = () => {
+    if (new Date(fechaInicio) > new Date(fechaFin)) {
+      alert('La fecha de inicio no puede ser mayor a la fecha de fin');
+      return;
+    }
+    if (!selectedTipoRegistrador) {
+      alert('Por favor seleccione un tipo de registrador');
+      return;
+    }
+    
+    // Limpiar estado antes de cargar nuevos participantes
+    setParticipants([]);
+    setAllParticipants([]);
+    setAvailableParticipants([]);
+    setCountdown(60); // Reset countdown
+    
+    // No limpiamos winners aquí, solo los filtramos en fetchParticipants
+    fetchParticipants();
+  };
+
+  // Estilos para el contenedor de pantalla completa
+  const fullscreenStyles = isFullscreen ? {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: 1000,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '20px',
+    overflow: 'hidden',
+    backgroundImage: "url('/assets/img/ruletafondo.webp')",
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'center center',
+    backgroundSize: 'cover'
+  } : {};
+
+  // Renderizar vista de pantalla completa
+  if (isFullscreen) {
+    return (
+      <div ref={containerRef} style={fullscreenStyles}>
+        <div className="absolute top-4 right-4 z-50">
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 bg-purple-500/30 backdrop-blur-md rounded-full hover:bg-purple-500/50 transition-colors border border-purple-300/40"
+            title="Salir de pantalla completa"
+          >
+            <FullscreenExit />
+          </button>
+        </div>
+
+        <div className="absolute bottom-4 right-4 z-40">
+          <div className="px-4 py-2 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-white shadow-xl">
+            <span className="text-sm uppercase tracking-wide text-white/80">Ganadores</span>
+            <span className="ml-3 text-2xl font-black text-yellow-300">{winners.length}</span>
+          </div>
+        </div>
+        
+        <div className="flex flex-col items-center justify-center flex-grow w-full max-w-4xl px-4">
+          {/* <h1 
+            className="text-5xl font-black text-white mb-8 drop-shadow-lg"
+            style={{
+              fontFamily: "'Doctor Glitch', sans-serif",
+              textShadow: '3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.3)',
+              letterSpacing: '2px'
+            }}
+          >
+            RULETA DE LA SUERTE
+          </h1> */}
+          
+          <div className="w-full max-w-2xl relative">
+            <div className="p-6 mb-6">
+              <div className="relative w-full aspect-square">
+                {/* Indicador de nombre mientras gira */}
+                {spinning && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
+                    <div className="bg-white/80 backdrop-blur-sm p-4 rounded-lg shadow-xl text-center">
+                      <div className="text-2xl font-bold text-blue-700 mb-2">🏆 ¡Girando! 🏆</div>
+                      <div className="text-3xl font-bold text-yellow-600">
+                        {currentHighlight || '...'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-3 z-10">
+                  <div className="w-8 h-10 bg-red-600 clip-arrow shadow-lg"></div>
+                </div>
+                <div 
+                  className="wheel-container w-full h-full rounded-full overflow-hidden border-8 border-gray-300 shadow-xl relative"
+                  style={wheelStyle}
+                >
+                  <svg width="100%" height="100%" viewBox="0 0 360 360">
+                    {(participants.length > MAX_VISUAL_SEGMENTS ? visualParticipants : participants).map((participant, index) => {
+                      const arr = participants.length > MAX_VISUAL_SEGMENTS ? visualParticipants : participants;
+                      const sliceDegree = 360 / arr.length;
+                      const startAngle = index * sliceDegree;
+                      const endAngle = (index + 1) * sliceDegree;
+
+                      const startRadians = (startAngle - 90) * Math.PI / 180;
+                      const endRadians = (endAngle - 90) * Math.PI / 180;
+                
+                      const startX = 180 + 180 * Math.cos(startRadians);
+                      const startY = 180 + 180 * Math.sin(startRadians);
+                      const endX = 180 + 180 * Math.cos(endRadians);
+                      const endY = 180 + 180 * Math.sin(endRadians);
+
+                      const largeArcFlag = sliceDegree <= 180 ? 0 : 1;
+
+                      const d = [
+                        `M 180 180`,
+                        `L ${startX} ${startY}`,
+                        `A 180 180 0 ${largeArcFlag} 1 ${endX} ${endY}`,
+                        `Z`
+                      ].join(' ');
+
+                      const textRadians = (startAngle + sliceDegree / 2 - 90) * Math.PI / 180;
+                      const textX = 180 + 100 * Math.cos(textRadians);
+                      const textY = 180 + 100 * Math.sin(textRadians);
+                      const textRotation = startAngle + sliceDegree / 2;
+
+                      return (
+                        <g key={index}>
+                          <path d={d} fill={colors[index % colors.length]} stroke="#fff" strokeWidth="1" />
+                          <text
+                            x={textX}
+                            y={textY}
+                            fill="#fff"
+                            fontWeight="bold"
+                            fontSize="12"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            transform={`rotate(${textRotation}, ${textX}, ${textY})`}
+                          >
+                            {shortenName(participant.nombre || 'Sin nombre')}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-center relative z-40">
+                <button
+                  onClick={startDraw}
+                  disabled={spinning || participants.length === 0}
+                  className={`px-8 py-3 rounded-full text-lg font-bold shadow-lg transform hover:scale-105 transition-all ${
+                    spinning || participants.length === 0
+                      ? "bg-gray-400/50 backdrop-blur-sm cursor-not-allowed"
+                      : "bg-gradient-to-r from-green-500/80 to-emerald-600/80 backdrop-blur-sm text-white hover:from-green-500 hover:to-emerald-600"
+                  }`}
+                >
+                  {spinning ? "Girando..." : "¡Girar Ruleta!"}
+                </button>
+              </div>
+            </div>
+
+            {winner && showWinnerAnimation && (
+              <div className="fixed inset-0 flex items-center justify-center z-30 pointer-events-auto">
+                <div className="p-6 bg-green-100 rounded-lg shadow-xl text-center border-4 border-yellow-400 max-w-md w-full mx-4" style={{
+                  background: 'linear-gradient(135deg, #f0fff0 0%, #e6ffe6 100%)',
+                  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+                }}>
+                  <h2 className="text-4xl font-extrabold text-black mb-3">¡GANADOR!</h2>
+                  <p className="text-3xl font-bold mb-2 text-blue-500" style={{
+                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                    background: 'linear-gradient(90deg, #3b82f6, #60a5fa)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    display: 'inline-block',
+                    padding: '0 10px'
+                  }}>{winner.nombre}</p>
+                  
+                  <div className="mt-4 space-y-2 text-gray-700">
+                    {/* Mostrar cédula solo si fue proporcionada en el archivo */}
+                    {winner.cedulaDelArchivo && (
+                      <p>Cédula: {winner.cedula}</p>
+                    )}
+                    
+                    {/* Mostrar teléfono si existe, enmascarado si es por filtros */}
+                    {winner.celular && (
+                      <p>
+                        Teléfono: {sourceMode === 'filtros' ? maskPhone(winner.celular) : winner.celular}
+                      </p>
+                    )}
+                    
+                    {/* Mostrar comentarios si existen */}
+                    {winner.comentarios !== undefined && (
+                      <p>Comentario: {winner.comentarios || 'Sin Comentario'}</p>
+                    )}
+                    
+                    {/* Mostrar barrios si existen */}
+                    {winner.barrios !== undefined && (
+                      <p>Barrio: {winner.barrios || 'Sin especificar'}</p>
+                    )}
+                  </div>
+                  
+                  {/* Mostrar botón de perfil si existe URL */}
+                  {winner.urls && (
+                    <div className="mt-6 flex justify-center">
+                      <a
+                        href={winner.urls}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition-all hover:shadow-lg transform hover:scale-105 border-2 border-blue-500"
+                        title="Ver perfil en Facebook"
+                      >
+                        <Facebook size={24} />
+                        <span>Ver Perfil</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Vista normal
+  return (
+    <div 
+      className="py-8 px-4 relative overflow-hidden"
+      style={{
+        background: 'linear-gradient(135deg, #1a0033 0%, #2d1b69 50%, #0f0a2e 100%)',
+        minHeight: "83.65vh"
+      }}
+      ref={containerRef}
+    >
+      {/* Efecto de fondo animado */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl"></div>
+      </div>
+      
+      <div className="max-w-6xl mx-auto relative z-10">
+        <div className="mb-8 text-center">
+          <div className="flex justify-between items-center mb-4">
+            <div className="w-1/3"></div>
+            <div className="w-1/3">
+              <h1 
+                className="text-4xl font-black text-white mb-2 drop-shadow-lg"
+                style={{
+                  fontFamily: "'Doctor Glitch', sans-serif",
+                  textShadow: '3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.3)',
+                  letterSpacing: '2px'
+                }}
+              >
+                SORTEO DE PREMIOS
+              </h1>
+              <p className="text-pink-100">¡Gira la ruleta y descubre al ganador!</p>
+            </div>
+            <div className="w-1/3 flex justify-end">
+              <button
+                onClick={toggleFullscreen}
+                className="p-2 bg-purple-500/30 backdrop-blur-md text-pink-100 rounded-lg hover:bg-purple-500/50 transition-colors flex items-center gap-2 border border-purple-300/40"
+                title="Ver en pantalla completa"
+              >
+                <Fullscreen />
+                <span className="hidden sm:inline">Pantalla completa</span>
+              </button>
+            </div>
+          </div>
+          
+          <div className="bg-white/95 backdrop-blur-md p-4 rounded-lg shadow-lg mb-6 border border-white/40">
+            <h3 className="text-lg font-medium text-gray-800 mb-4">Modo de Sorteo</h3>
+            
+            {/* Selector de modo */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <button
+                onClick={() => {
+                  setSourceMode('filtros');
+                  handleClearFile();
+                }}
+                className={`p-4 rounded-lg border-2 transition-all font-semibold ${
+                  sourceMode === 'filtros'
+                    ? 'border-purple-600 bg-purple-100 text-purple-700'
+                    : 'border-gray-300 bg-white text-gray-600 hover:border-purple-300'
+                }`}
+              >
+                📊 Sorteo por Filtros
+              </button>
+              <button
+                onClick={() => setSourceMode('archivo')}
+                className={`p-4 rounded-lg border-2 transition-all font-semibold flex items-center justify-center gap-2 ${
+                  sourceMode === 'archivo'
+                    ? 'border-purple-600 bg-purple-100 text-purple-700'
+                    : 'border-gray-300 bg-white text-gray-600 hover:border-purple-300'
+                }`}
+              >
+                <CloudUpload size={20} />
+                Sorteo por Archivo Excel
+              </button>
+            </div>
+
+            {/* Contenido según el modo seleccionado */}
+            {sourceMode === 'archivo' && (
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex flex-col gap-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Subir archivo Excel
+                    <div className="text-xs text-gray-600 mt-1 font-normal">
+                      Obligatoria: <span className="font-semibold">nombres</span> | 
+                      Opcionales: cedula, celular, comentarios, urls, barrios
+                    </div>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={handleFileUpload}
+                      className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                    {excelFile && (
+                      <>
+                        <button
+                          onClick={handleClearFile}
+                          className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors font-semibold whitespace-nowrap"
+                        >
+                          Limpiar
+                        </button>
+                        <button
+                          onClick={() => setShowAddParticipantModal(true)}
+                          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors font-semibold whitespace-nowrap"
+                        >
+                          + Agregar
+                        </button>
+                        <button
+                          onClick={() => setShowManualParticipantsList(!showManualParticipantsList)}
+                          className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md transition-colors font-semibold whitespace-nowrap"
+                        >
+                          {showManualParticipantsList ? 'Ocultar' : 'Ver'} Listado
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {excelFile && (
+                    <p className="text-sm text-green-600 font-medium">✓ Archivo: {excelFile.name}</p>
+                  )}
+
+                  {/* Sección de participantes manuales */}
+                  {excelFile && showManualParticipantsList && (
+                    <div className="mt-4 pt-4 border-t border-blue-200">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Participantes Agregados Manualmente</h4>
+
+                      {/* Lista de participantes manuales */}
+                      {manualParticipants.length > 0 ? (
+                        <div className="bg-white rounded-md p-3 border border-blue-200 max-h-40 overflow-y-auto">
+                          {manualParticipants.map((p) => (
+                            <div key={p.id} className="flex justify-between items-center py-2 px-2 hover:bg-blue-50 rounded text-sm">
+                              <span className="font-medium text-gray-700">{p.nombre}</span>
+                              <button
+                                onClick={() => handleRemoveManualParticipant(p.id)}
+                                className="text-red-500 hover:text-red-700 font-semibold text-xs"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center py-4">No hay participantes agregados manualmente</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {sourceMode === 'filtros' && (
+              <>
+                <h3 className="text-lg font-medium text-gray-800 mb-4">Filtros de Búsqueda</h3>
+              </>
+            )}
+
+            {sourceMode === 'filtros' && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo de Registrador
+                  </label>
+                  <select
+                    value={selectedTipoRegistrador}
+                    onChange={handleTipoRegistradorChange}
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    required
+                  >
+                    <option value="" disabled>Seleccione un tipo</option>
+                    {registradores.map((tipo) => (
+                      <option key={tipo.id} value={tipo.id}>
+                        {tipo.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha de inicio
+                  </label>
+                  <input
+                    type="date"
+                    value={fechaInicio}
+                    onChange={handleFechaInicioChange}
+                    max={fechaFin}
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha de fin
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={fechaFin}
+                      onChange={handleFechaFinChange}
+                      min={fechaInicio}
+                      max={new Date().toISOString().split('T')[0]}
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    />
+                    <button
+                      onClick={aplicarFiltro}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-md hover:scale-105 transform transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 whitespace-nowrap shadow-lg font-semibold"
+                      disabled={loading}
+                    >
+                      {loading ? 'Cargando...' : 'Aplicar Filtros'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {sourceMode === 'filtros' && selectedTipoRegistrador && registradores.length > 0 && (
+              <div className="mt-2 text-sm text-gray-700">
+                {registradores.find(t => t.id.toString() === selectedTipoRegistrador)?.descripcion}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Lista de Participantes */}
+          <div className="bg-white/95 backdrop-blur-md p-6 rounded-lg shadow-lg border border-white/40">
+            <h2 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 border-b pb-2 flex items-center gap-2">
+              Participantes ({participants.length})
+              {sourceMode === 'filtros' && (
+                <span className="text-sm text-gray-500 font-normal">
+                  (Actualización en {countdown}s)
+                </span>
+              )}
+            </h2>
+            {loading ? (
+              <p className="text-gray-500 text-center py-8">Cargando participantes...</p>
+            ) : participants.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-4">No hay participantes para la fecha seleccionada</p>
+                {winners.length > 0 && (
+                  <button
+                    onClick={resetWinners}
+                    className="px-4 py-2 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-all"
+                  >
+                    Reiniciar lista de ganadores
+                  </button>
+                )}
+              </div>
+            ) : (
+              <ul className="divide-y max-h-[600px] overflow-y-auto">
+                {participants.map((p, index) => (
+                  <li key={index} className="py-2 px-2 hover:bg-gray-50 rounded">
+                    <div className="font-semibold">{p.nombre}</div>
+                    <div className="text-sm text-gray-600">
+                      <div>CI: {p.cedula}</div>
+                      {p.celular && <div>Tel: {p.celular}</div>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Ruleta */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white/95 backdrop-blur-md text-gray-800 p-5 rounded-lg shadow-lg border border-white/40 flex flex-col items-center relative">
+              <h2 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Ruleta de la Suerte</h2>
+
+              {participants.length > 0 && (
+                <div className="relative w-full max-w-md aspect-square">
+                  {/* Indicador de nombre mientras gira */}
+                  {spinning && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
+                      <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-lg text-center">
+                        <div className="text-xl font-bold text-blue-700 mb-1">🏆 ¡Girando! 🏆</div>
+                        <div className="text-2xl font-bold text-yellow-600">
+                          {currentHighlight || '...'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-3 z-10">
+                    <div className="w-6 h-8 bg-red-600 clip-arrow shadow-md"></div>
+                  </div>
+                  <div 
+                    className="wheel-container w-full h-full rounded-full overflow-hidden border-8 border-gray-300 shadow-lg relative"
+                    style={wheelStyle}
+                  >
+                    <svg width="100%" height="100%" viewBox="0 0 360 360">
+                      {participants.map((participant, index) => {
+                        const sliceDegree = 360 / participants.length;
+                        const startAngle = index * sliceDegree;
+                        const endAngle = (index + 1) * sliceDegree;
+
+                        const startRadians = (startAngle - 90) * Math.PI / 180;
+                        const endRadians = (endAngle - 90) * Math.PI / 180;
+                        
+                        const startX = 180 + 180 * Math.cos(startRadians);
+                        const startY = 180 + 180 * Math.sin(startRadians);
+                        const endX = 180 + 180 * Math.cos(endRadians);
+                        const endY = 180 + 180 * Math.sin(endRadians);
+
+                        const largeArcFlag = sliceDegree <= 180 ? 0 : 1;
+
+                        const d = [
+                          `M 180 180`,
+                          `L ${startX} ${startY}`,
+                          `A 180 180 0 ${largeArcFlag} 1 ${endX} ${endY}`,
+                          `Z`
+                        ].join(' ');
+
+                        const textRadians = (startAngle + sliceDegree / 2 - 90) * Math.PI / 180;
+                        const textX = 180 + 100 * Math.cos(textRadians);
+                        const textY = 180 + 100 * Math.sin(textRadians);
+                        const textRotation = startAngle + sliceDegree / 2;
+
+                        return (
+                          <g key={index}>
+                            <path d={d} fill={colors[index % colors.length]} stroke="#fff" strokeWidth="1" />
+                            <text
+                              x={textX}
+                              y={textY}
+                              fill="#fff"
+                              fontWeight="bold"
+                              fontSize="12"
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              transform={`rotate(${textRotation}, ${textX}, ${textY})`}
+                            >
+                              {shortenName(participant.nombre)}
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={startDraw}
+                  disabled={spinning || participants.length === 0}
+                  className={`px-6 py-3 rounded-full text-lg font-bold shadow-lg transform hover:scale-105 transition-all ${
+                    spinning || participants.length === 0
+                      ? "bg-gray-400/50 backdrop-blur-sm cursor-not-allowed"
+                      : "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white"
+                  }`}
+                >
+                  {spinning ? "Girando..." : "¡Girar Ruleta!"}
+                </button>
+              </div>
+            </div>
+
+            {/* Ganador */}
+            <div className="bg-white/95 backdrop-blur-md text-gray-800 p-5 rounded-lg shadow-lg border border-white/40">
+              <h2 className="text-xl font-bold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 border-b pb-2">
+                Resultado del Sorteo
+              </h2>
+
+              {showWinnerAnimation && winner && (
+                <div className="text-center py-6">
+                  <div className="text-2xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">🏆 ¡Tenemos un ganador! 🏆</div>
+                  <div className="text-3xl font-bold text-pink-600 mb-3">{winner.nombre}</div>
+                  
+                  <div className="text-lg space-y-2 mt-4">
+                    {/* Mostrar cédula solo si fue proporcionada en el archivo */}
+                    {winner.cedulaDelArchivo && (
+                      <div>
+                        <span className="font-medium">Cédula:</span> {winner.cedula}
+                      </div>
+                    )}
+                    
+                    {/* Mostrar teléfono si existe, enmascarado si es por filtros */}
+                    {winner.celular && (
+                      <div>
+                        <span className="font-medium">Teléfono:</span> {sourceMode === 'filtros' ? maskPhone(winner.celular) : winner.celular}
+                      </div>
+                    )}
+                    
+                    {/* Mostrar comentarios si existen */}
+                    {winner.comentarios !== undefined && (
+                      <div>
+                        <span className="font-medium">Comentario:</span> {winner.comentarios || 'Sin Comentario'}
+                      </div>
+                    )}
+                    
+                    {/* Mostrar barrios si existen */}
+                    {winner.barrios !== undefined && (
+                      <div>
+                        <span className="font-medium">Barrio:</span> {winner.barrios || 'Sin especificar'}
+                      </div>
+                    )}
+                    
+                    {/* Mostrar botón de perfil si existe URL */}
+                    {winner.urls && (
+                      <div className="mt-6 flex justify-center">
+                        <a
+                          href={winner.urls}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition-all hover:shadow-lg transform hover:scale-105 border-2 border-blue-500"
+                          title="Ver perfil en Facebook"
+                        >
+                          <Facebook size={24} />
+                          <span>Ver Perfil</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Sección de Historial de Ganadores */}
+            <div className="bg-white/95 backdrop-blur-md p-6 rounded-lg shadow-lg border border-white/40">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Historial de Ganadores</h2>
+                <div className="flex gap-2">
+                  {history.length > 0 && (
+                    <>
+                      <button 
+                        onClick={exportWinnersToExcel}
+                        className="px-3 py-1 bg-green-100 text-green-700 hover:bg-green-200 rounded-md text-sm font-semibold transition-colors"
+                      >
+                        Exportar Excel
+                      </button>
+                      <button 
+                        onClick={resetWinners}
+                        className="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-md text-sm font-semibold transition-colors"
+                      >
+                        Limpiar Todo
+                      </button>
+                    </>
+                  )}
+                  <button 
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="text-purple-600 hover:text-purple-800 flex items-center transition-colors">
+                    {showHistory ? (
+                      <>
+                        <span>Ocultar</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                        </svg>
+                      </>
+                    ) : (
+                      <>
+                        <span>Mostrar</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+              
+              {showHistory && (
+                <div className="border border-purple-200 rounded-lg overflow-hidden">
+                  {history.length > 0 ? (
+                    <div className="max-h-80 overflow-y-auto">
+                      <table className="min-w-full divide-y divide-purple-200">
+                        <thead className="bg-purple-50/50">
+                          <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                              Fecha y Hora
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                              Ganador
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                              Cédula
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                              Teléfono
+                            </th>
+                            {history.some(item => item.winner.comentarios !== undefined) && (
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                                Comentario
+                              </th>
+                            )}
+                            {history.some(item => item.winner.barrios !== undefined) && (
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                                Barrio
+                              </th>
+                            )}
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                              Acciones
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-purple-200">
+                          {history.map((item) => (
+                            <tr key={item.id} className={history.indexOf(item) % 2 === 0 ? 'bg-white' : 'bg-purple-50/30'}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {formatDate(item.date)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {item.winner.nombre}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {item.winner.cedula ? item.winner.cedula : '-'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {item.winner.celular || '-'}
+                              </td>
+                              {history.some(h => h.winner.comentarios !== undefined) && (
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                  {item.winner.comentarios || '-'}
+                                </td>
+                              )}
+                              {history.some(h => h.winner.barrios !== undefined) && (
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                  {item.winner.barrios || '-'}
+                                </td>
+                              )}
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <button
+                                  onClick={() => deleteWinner(item.id, item.winner.cedula)}
+                                  className="text-red-500 hover:text-red-700 font-semibold text-xs"
+                                >
+                                  Eliminar
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-gray-500">
+                      No hay historial de ganadores aún
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal para agregar participante */}
+      {showAddParticipantModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold mb-4 text-gray-800">Agregar Participante</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nombre del participante
+              </label>
+              <input
+                type="text"
+                value={newParticipantName}
+                onChange={(e) => setNewParticipantName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddManualParticipant()}
+                placeholder="Ingresa el nombre"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setShowAddParticipantModal(false);
+                  setNewParticipantName('');
+                }}
+                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-md transition-colors font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAddManualParticipant}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors font-semibold"
+              >
+                Agregar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        .clip-arrow {
+          clip-path: polygon(50% 100%, 0 0, 100% 0);
+        }
+      `}</style>
+    </div>
+  );
+}
+
+

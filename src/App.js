@@ -8,6 +8,7 @@ import ManualRegistroVarios from './v2/components/RegistroManualVarios';
 import DashboardVarios from './v2/components/AdminDashboardVarios';
 import SorteoPage from './v2/components/SorteoPage';
 import LinkAccesos from './v2/components/LinkAccesos';
+import SorteoPageArchivo from './v2/components/SorteoPageArchivo';
 
 function App() {
   useEffect(() => {
@@ -41,6 +42,7 @@ function App() {
                 <Route path='/admin-panel-varios' element={<DashboardVarios />} />
           <Route path="/accesos" element={<LinkAccesos />} />
         <Route path="/sorteos-varios" element={<SorteoPage />} />
+         <Route path="/sorteos-datos" element={<SorteoPageArchivo />} />
 
 
         {/* Rutas reservadas (comentadas, no se usan ahora) */}
