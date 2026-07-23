@@ -25,6 +25,8 @@ export default function SorteoPageArchivo() {
   const [allParticipants, setAllParticipants] = useState([]);
   const [availableParticipants, setAvailableParticipants] = useState([]);
   const [participants, setParticipants] = useState([]);
+  // Para la ruleta, se mantiene al ganador hasta que termine de girar
+  const [wheelParticipants, setWheelParticipants] = useState([]);
   const [history, setHistory] = useState([]);
   const [winner, setWinner] = useState(null);
   const [spinning, setSpinning] = useState(false);
@@ -84,6 +86,20 @@ export default function SorteoPageArchivo() {
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
+
+    // Limpiar todo antes de cargar el nuevo archivo
+    setExcelFile(null);
+    setAllParticipants([]);
+    setAvailableParticipants([]);
+    setParticipants([]);
+    setWheelParticipants([]);
+    setWinners([]);
+    setHistory([]);
+    setManualParticipants([]);
+    setSpinCount(0);
+    setRotation(0);
+    setWinner(null);
+    setShowWinnerAnimation(false);
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -344,7 +360,11 @@ export default function SorteoPageArchivo() {
     // El listado debe mostrar todos los participantes que siguen en juego,
     // incluso los reservados para los giros especiales.
     setParticipants(participantesSinGanadores);
-  }, [winners, allParticipants, spinCount]);
+    // La ruleta solo se actualiza si no está girando
+    if (!spinning) {
+      setWheelParticipants(participantesSinGanadores);
+    }
+  }, [winners, allParticipants, spinCount, spinning]);
 
   function startDraw() {
     if (spinning) {
@@ -408,10 +428,12 @@ export default function SorteoPageArchivo() {
     setWinner(null);
     setShowWinnerAnimation(false);
     setCurrentHighlight('');
+    // Guardar la lista de la ruleta tal cual está para que no se pierda al ganador durante el giro
+    setWheelParticipants([...participants]);
     
-    // Calcular la rotación para la ruleta
-    const sliceDegree = 360 / allParticipants.length;
-    const winnerPosition = allParticipants.findIndex(p => p.cedula === selectedWinner.cedula);
+    // Calcular la rotación para la ruleta (usamos la lista que se va a mostrar en la ruleta)
+    const sliceDegree = 360 / participants.length;
+    const winnerPosition = participants.findIndex(p => p.cedula === selectedWinner.cedula);
     const targetDegree = 360 - (sliceDegree * winnerPosition) - (sliceDegree / 2);
     const targetRotation = (360 * 10) + targetDegree;
     
@@ -451,9 +473,9 @@ export default function SorteoPageArchivo() {
   }
 
   const updateHighlight = (angle) => {
-    if (participants.length === 0) return;
-    const useVisual = participants.length > MAX_VISUAL_SEGMENTS;
-    const arr = useVisual ? visualParticipants : participants;
+    if (wheelParticipants.length === 0) return;
+    const useVisual = wheelParticipants.length > MAX_VISUAL_SEGMENTS;
+    const arr = useVisual ? visualParticipants : wheelParticipants;
     const sliceDegree = 360 / arr.length;
     const normalizedAngle = ((angle % 360) + 360) % 360;
     const index = Math.floor(normalizedAngle / sliceDegree);
@@ -474,6 +496,10 @@ export default function SorteoPageArchivo() {
       setWinners([]);
       setHistory([]);
       setSpinCount(0); // Resetear contador de giros
+      setRotation(0);
+      setWheelParticipants([]);
+      setWinner(null);
+      setShowWinnerAnimation(false);
       // No modificamos allParticipants porque ya tiene la lista original
     }
   };
@@ -583,8 +609,8 @@ export default function SorteoPageArchivo() {
                   style={wheelStyle}
                 >
                   <svg width="100%" height="100%" viewBox="0 0 360 360">
-                    {(participants.length > MAX_VISUAL_SEGMENTS ? visualParticipants : participants).map((participant, index) => {
-                      const arr = participants.length > MAX_VISUAL_SEGMENTS ? visualParticipants : participants;
+                    {(wheelParticipants.length > MAX_VISUAL_SEGMENTS ? visualParticipants : wheelParticipants).map((participant, index) => {
+                      const arr = wheelParticipants.length > MAX_VISUAL_SEGMENTS ? visualParticipants : wheelParticipants;
                       const sliceDegree = 360 / arr.length;
                       const startAngle = index * sliceDegree;
                       const endAngle = (index + 1) * sliceDegree;
@@ -905,8 +931,8 @@ export default function SorteoPageArchivo() {
                     style={wheelStyle}
                   >
                     <svg width="100%" height="100%" viewBox="0 0 360 360">
-                      {participants.map((participant, index) => {
-                        const sliceDegree = 360 / participants.length;
+                      {wheelParticipants.map((participant, index) => {
+                        const sliceDegree = 360 / wheelParticipants.length;
                         const startAngle = index * sliceDegree;
                         const endAngle = (index + 1) * sliceDegree;
 
