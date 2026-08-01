@@ -34,11 +34,12 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Ruta principal activa */}
-        <Route path="/" element={<ManualRegisterPage />} />
+        {/* <Route path="/" element={<ManualRegisterPage />} /> */}
+         <Route path="/" element={<ManualRegistroVarios />} />
         <Route path="/admin-panel" element={<Dashboard />} />
         <Route path="/registro-manual" element={<ManualRegisterPage />} />
         <Route path="/administracion-tablas" element={<DashboardAdmin />} />
-        <Route path='/registro-usuarios-varios' element={<ManualRegistroVarios />} />
+        {/* <Route path='/registro-usuarios-varios' element={<ManualRegistroVarios />} /> */}
                 <Route path='/admin-panel-varios' element={<DashboardVarios />} />
           <Route path="/accesos" element={<LinkAccesos />} />
         <Route path="/sorteos-varios" element={<SorteoPage />} />
