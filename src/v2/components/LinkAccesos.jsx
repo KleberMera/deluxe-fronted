@@ -28,9 +28,9 @@ const LinkAccesos = () => {
   ];
 
   const variosLinks = [
-    { url: 'https://deluxe-fronted.vercel.app/admin-panel-varios', label: 'Métricas' },
-    { url: 'https://deluxe-fronted.vercel.app/registro-usuarios-varios', label: 'Registros' },
-    { url: 'https://deluxe-fronted.vercel.app/sorteos-varios', label: 'Sorteo' }
+    { url: 'https://lalibertadendatos/bingo/admin-panel-varios', label: 'Métricas' },
+    { url: 'https://lalibertadendatos/bingo', label: 'Registros' },
+    { url: 'https://lalibertadendatos/bingo/sorteos-varios', label: 'Sorteo' }
   ];
 
   const handleCopy = async (url) => {
