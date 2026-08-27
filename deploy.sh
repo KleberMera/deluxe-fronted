@@ -26,7 +26,7 @@ npm run build
 echo ""
 echo "📂 Publicando archivos..."
 
-sudo rsync -av --delete /build/ /var/www/bingo/
+sudo rsync -av --delete build/ /var/www/bingo/
 
 echo ""
 echo "✅ BINGO AMIGO desplegado correctamente."
