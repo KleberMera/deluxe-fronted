@@ -31,7 +31,7 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/bingo">
       <Routes>
         {/* Ruta principal activa */}
         {/* <Route path="/" element={<ManualRegisterPage />} /> */}
