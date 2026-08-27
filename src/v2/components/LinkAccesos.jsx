@@ -28,9 +28,9 @@ const LinkAccesos = () => {
   ];
 
   const variosLinks = [
-    { url: 'https://lalibertadendatos/bingo/admin-panel-varios', label: 'Métricas' },
-    { url: 'https://lalibertadendatos/bingo', label: 'Registros' },
-    { url: 'https://lalibertadendatos/bingo/sorteos-varios', label: 'Sorteo' }
+    { url: 'https://lalibertadendatos.com/bingo/admin-panel-varios', label: 'Métricas' },
+    { url: 'https://lalibertadendatos.com/bingo', label: 'Registros' },
+    { url: 'https://lalibertadendatos.com/bingo/sorteos-varios', label: 'Sorteo' }
   ];
 
   const handleCopy = async (url) => {
