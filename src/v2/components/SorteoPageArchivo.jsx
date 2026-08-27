@@ -560,7 +560,7 @@ export default function SorteoPageArchivo() {
     justifyContent: 'center',
     padding: '20px',
     overflow: 'hidden',
-    backgroundImage: "url('/assets/img/ruletafondo.webp')",
+    backgroundImage: "url('assets/img/ruletafondo.webp')",
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'center center',
     backgroundSize: 'cover'
