@@ -9,6 +9,7 @@ import DashboardVarios from './v2/components/AdminDashboardVarios';
 import SorteoPage from './v2/components/SorteoPage';
 import LinkAccesos from './v2/components/LinkAccesos';
 import SorteoPageArchivo from './v2/components/SorteoPageArchivo';
+import SorteoDatos from './v2/components/SorteoDatos';
 
 function App() {
   useEffect(() => {
@@ -43,6 +44,7 @@ function App() {
                 <Route path='/admin-panel-varios' element={<DashboardVarios />} />
           <Route path="/accesos" element={<LinkAccesos />} />
         <Route path="/sorteos-varios" element={<SorteoPage />} />
+                <Route path="/sorteo" element={<SorteoDatos />} />
          <Route path="/sorteos-datos" element={<SorteoPageArchivo />} />
 
 
