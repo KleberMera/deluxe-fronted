@@ -114,6 +114,7 @@ export default function SorteoDatos() {
         const hasComentariosColumn = columnExists(rows, 'comentarios', 'comentario');
         const hasUrlsColumn = columnExists(rows, 'urls', 'url', 'perfil');
         const hasBarriosColumn = columnExists(rows, 'barrios', 'barrio', 'localidad');
+        const hasTicketColumn = columnExists(rows, 'ticket');
 
         const participantesDelArchivo = rows
           .map((row, index) => {
@@ -149,6 +150,9 @@ export default function SorteoDatos() {
             }
             if (hasBarriosColumn) {
               participant.barrios = getColumnValue(row, 'barrios', 'barrio', 'localidad');
+            }
+            if (hasTicketColumn) {
+              participant.ticket = getColumnValue(row, 'ticket');
             }
 
             return participant;
@@ -476,7 +480,8 @@ export default function SorteoDatos() {
       'Cédula': item.winner.cedula || '-',
       'Teléfono': item.winner.celular || '-',
       'Comentario': item.winner.comentarios || '-',
-      'Barrio': item.winner.barrios || '-'
+      'Barrio': item.winner.barrios || '-',
+      'Ticket': item.winner.ticket || '-'
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -655,6 +660,9 @@ export default function SorteoDatos() {
                     {winner.barrios !== undefined && (
                       <p>Barrio: {winner.barrios || 'Sin especificar'}</p>
                     )}
+                    {winner.ticket !== undefined && (
+                      <p>Ticket: {winner.ticket || 'Sin especificar'}</p>
+                    )}
                   </div>
                   
                   {winner.urls && (
@@ -738,7 +746,7 @@ export default function SorteoDatos() {
                   Subir archivo Excel
                   <div className="text-xs text-gray-600 mt-1 font-normal">
                     Obligatoria: <span className="font-semibold">nombres</span> | 
-                    Opcionales: cedula, celular, comentarios, urls, barrios
+                    Opcionales: cedula, celular, comentarios, urls, barrios, ticket
                   </div>
                 </label>
                 <div className="flex gap-2 flex-wrap">
@@ -963,6 +971,11 @@ export default function SorteoDatos() {
                         <span className="font-medium">Barrio:</span> {winner.barrios || 'Sin especificar'}
                       </div>
                     )}
+                    {winner.ticket !== undefined && (
+                      <div>
+                        <span className="font-medium">Ticket:</span> {winner.ticket || 'Sin especificar'}
+                      </div>
+                    )}
                     {winner.urls && (
                       <div className="mt-6 flex justify-center">
                         <a
@@ -1057,6 +1070,11 @@ export default function SorteoDatos() {
                                 Barrio
                               </th>
                             )}
+                            {history.some(item => item.winner.ticket !== undefined) && (
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                                Ticket
+                              </th>
+                            )}
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
                               Acciones
                             </th>
@@ -1089,6 +1107,11 @@ export default function SorteoDatos() {
                                 {history.some(h => h.winner.barrios !== undefined) && (
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                     {item.winner.barrios || '-'}
+                                  </td>
+                                )}
+                                {history.some(h => h.winner.ticket !== undefined) && (
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    {item.winner.ticket || '-'}
                                   </td>
                                 )}
                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
