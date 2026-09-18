@@ -164,26 +164,21 @@ const ManualRegistroVarios = () => {
       } else if (data && data.id) {
         // Si exists es false pero hay data, significa que existe en otra brigada
         MySwal.fire({
-          title: 'Usuario en otra brigada',
+          title: 'Cédula Válida',
           html: (
             <div className="text-center">
-              <p className="mb-3 font-semibold text-blue-600">Puede proceder con el registro en esta.</p>
+              <p className="mb-3 font-semibold">Se han precargado los siguientes datos</p>
               <div className="bg-blue-50 p-3 rounded-lg mb-3">
                 <p className="font-medium">{data.first_name} {data.last_name}</p>
                 <p className="text-sm text-gray-600">Cédula: {data.id_card}</p>
                 <p className="text-sm text-gray-600">Tel: {data.phone}</p>
               </div>
-              <p className="text-sm text-gray-600">
-                ¿Autocompletar con estos datos?
-              </p>
             </div>
           ),
-          icon: 'info',
-          showCancelButton: true,
-          confirmButtonColor: '#2563eb',
-          cancelButtonColor: '#6b7280',
-          confirmButtonText: 'Sí, autocompletar',
-          cancelButtonText: 'No, limpiar'
+          icon: 'success',
+          showCancelButton: false,
+          confirmButtonColor: '#2563eb',      
+          confirmButtonText: 'Continuar',
         }).then((result) => {
           if (result.isConfirmed) {
             // Autocompletar formulario con los datos existentes (preservando registrador)
@@ -223,8 +218,8 @@ const ManualRegistroVarios = () => {
       } else {
         // Usuario completamente nuevo
         MySwal.fire({
-          title: 'Usuario no registrado',
-          text: message || 'No se encontró registro para esta cédula. Puede proceder con el registro.',
+          title: 'Cédula Válida',
+          text: 'Puede proceder con el registro.',
           icon: 'success',
           confirmButtonColor: '#2563eb',
           confirmButtonText: 'Continuar'
